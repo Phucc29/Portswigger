@@ -147,12 +147,12 @@ Khai thác Blind SQL Injection tại cookie `TrackingId` bằng phản hồi đi
 ### Các bước thực hiện
 
 **Bước 1:** Truy cập một danh mục sản phẩm bất kỳ, bắt request và gửi sang Burp Repeater để kiểm tra tham số có thể chèn payload.
-![Yeu cau bai lab](./images/blind-0.png)
-![Bat request gui qua Repeater](./images/blind-1.png)
+![Yêu cầu bài lab](image.png)
+![Bắt request gửi qua Repeater](image-1.png)
 
-Ứng dụng sử dụng cookie `TrackingId` trong câu truy vấn SQL, nên đây là vị trí khai thác chính.
+Ứng dụng sử dụng cookie `TrackingId` trong truy vấn SQL, nên đây là vị trí khai thác chính.
 
-**Bước 2:** Chèn điều kiện đúng/sai để xác nhận lỗ hổng Blind SQLi thông qua phản hồi trang.
+**Bước 2:** Chèn điều kiện đúng/sai vào `TrackingId` để xác nhận lỗ hổng Blind SQLi.
 
 ```sql
 ' AND 1=1--
@@ -160,17 +160,17 @@ Khai thác Blind SQL Injection tại cookie `TrackingId` bằng phản hồi đi
 ```
 
 Khi điều kiện đúng, trang hiển thị `Welcome back`; khi điều kiện sai, chuỗi này biến mất.
-![Kiem tra dieu kien dung](./images/blind-2.png)
-![Kiem tra dieu kien sai](./images/blind-3.png)
+![Kiểm tra điều kiện đúng](image-2.png)
+![Kiểm tra điều kiện sai](image-3.png)
 
-**Bước 3:** Kiểm tra sự tồn tại của bảng `users` bằng điều kiện `EXISTS`.
+**Bước 3:** Kiểm tra sự tồn tại của bảng `users`.
 
 ```sql
 ' AND (SELECT 'a' FROM users LIMIT 1)='a'--
 ```
 
 Phản hồi đúng cho thấy bảng `users` tồn tại.
-![Xac nhan ton tai bang users](./images/blind-4.png)
+![Xác nhận tồn tại bảng users](image-4.png)
 
 **Bước 4:** Kiểm tra tài khoản `administrator` có tồn tại trong bảng người dùng.
 
@@ -179,9 +179,9 @@ Phản hồi đúng cho thấy bảng `users` tồn tại.
 ```
 
 Phản hồi đúng xác nhận có user `administrator`.
-![Xac nhan user administrator](./images/blind-5.png)
+![Xác nhận user administrator](image-5.png)
 
-**Bước 5:** Xác định độ dài mật khẩu của `administrator` bằng điều kiện độ dài.
+**Bước 5:** Xác định độ dài mật khẩu của `administrator`.
 
 ```sql
 ' AND (SELECT LENGTH(password) FROM users WHERE username='administrator')>19--
@@ -189,10 +189,10 @@ Phản hồi đúng xác nhận có user `administrator`.
 ```
 
 Điều kiện `>19` đúng nhưng `>20` sai, suy ra mật khẩu dài **20 ký tự**.
-![Xac dinh do dai mat khau](./images/blind-6.png)
+![Xác định độ dài mật khẩu](image-6.png)
 
 **Bước 6:** Gửi request sang Burp Intruder để brute-force từng vị trí ký tự của mật khẩu bằng tập ký tự chữ và số.
-![Gui sang Intruder](./images/blind-7.png)
+![Gửi sang Intruder](image-7.png)
 
 Ví dụ payload cho vị trí thứ 1:
 
@@ -201,7 +201,7 @@ Ví dụ payload cho vị trí thứ 1:
 ```
 
 **Bước 7:** Lặp lại cho từng vị trí từ 1 đến 20, ghi nhận ký tự khi phản hồi trả về `Welcome back`.
-![Thu ky tu tung vi tri](./images/blind-8.png)
+![Thu ký tự từng vị trí](image-8.png)
 
 **Bước 8:** Sau khi ghép đủ 20 ký tự, đăng nhập tài khoản `administrator` bằng mật khẩu tìm được để hoàn thành lab.
-![alt text](./images/blind-9.png)
+![Hoàn thành lab](image-10.png)
