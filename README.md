@@ -1,3 +1,4 @@
+# SQL Injection
 ## SQL injection vulnerability in WHERE clause allowing retrieval of hidden data
 
 ### Mục tiêu
@@ -205,3 +206,29 @@ Ví dụ payload cho vị trí thứ 1:
 
 **Bước 8:** Sau khi ghép đủ 20 ký tự, đăng nhập tài khoản `administrator` bằng mật khẩu tìm được để hoàn thành lab.
 ![Hoàn thành lab](image-10.png)
+## Blind SQL injection with conditional errors
+**Bước 1:** Truy cập một danh mục sản phẩm bất kỳ, bắt request và gửi sang Burp Repeater để kiểm tra tham số có thể chèn payload.
+![Yeu cau bai lab](image-12.png)
+**Bước 2:** Kiem tra thay rang khi them 1 ky tu `'` thi co so du lieu tra ve thong tin loi, nhung them 2 ky tu `'` thi co so du lieu tra ve trang binh thuong nen ta thay 1 ky tu `'` la dieu kien xay ra loi
+![alt text](image-13.png)
+![alt text](image-14.png)
+**Bước 3:** Kiem tra bang cach test 1 cau inject khac ta su dung cau truy van noi chuoi de xac dinh rang co so du lieu tra ve loi
+![alt text](image-15.png)
+![alt text](image-16.png)
+Ta thay khi them FROM dual ta thay co so du lieu tra ve dung trang ban dau nen ta xac dinh co so du lieu su dung Oracle
+**Bước 4:** 
+# Authentication
+## 2FA simple bypass
+**Buoc 1:** Dang nhap vao tai khoan carlos được cho trước
+![alt text](image-19.png)
+Ta thấy yêu cầu mã code để xác nhận tiến trình đăng nhập
+**Bước 2:** Tiến hành vào mục Email client để lấy mã xác nhận đăng nhập
+![alt text](image-20.png)
+**Bước 3:** Quay trở lại trang ta thấy bài lab đã được giải quyết
+![alt text](image-21.png)
+## Password reset broken logic
+Yeu cau bai lab:
+![alt text](image-17.png)
+**Buoc 1:** Thuc hien reset lai mat khau cho nguoi dung carlos
+![alt text](image-18.png)
+**Buoc 2:** 
