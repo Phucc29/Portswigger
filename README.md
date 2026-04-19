@@ -149,8 +149,8 @@ Khai thác Blind SQL Injection tại cookie `TrackingId` bằng phản hồi đi
 ### Các bước thực hiện
 
 **Bước 1:** Truy cập một danh mục sản phẩm bất kỳ, bắt request và gửi sang Burp Repeater để kiểm tra tham số có thể chèn payload.
-![Yêu cầu bài lab](image.png)
-![Bắt request gửi qua Repeater](image-1.png)
+![Yêu cầu bài lab](./images/image-22.png)
+![Bắt request gửi qua Repeater](./images/image-23.png)
 
 Ứng dụng sử dụng cookie `TrackingId` trong truy vấn SQL, nên đây là vị trí khai thác chính.
 
@@ -162,8 +162,8 @@ Khai thác Blind SQL Injection tại cookie `TrackingId` bằng phản hồi đi
 ```
 
 Khi điều kiện đúng, trang hiển thị `Welcome back`; khi điều kiện sai, chuỗi này biến mất.
-![Kiểm tra điều kiện đúng](image-2.png)
-![Kiểm tra điều kiện sai](image-3.png)
+![Kiểm tra điều kiện đúng](./images/image-24.png)
+![Kiểm tra điều kiện sai](./images/image-25.png)
 
 **Bước 3:** Kiểm tra sự tồn tại của bảng `users`.
 
@@ -172,7 +172,7 @@ Khi điều kiện đúng, trang hiển thị `Welcome back`; khi điều kiện
 ```
 
 Phản hồi đúng cho thấy bảng `users` tồn tại.
-![Xác nhận tồn tại bảng users](image-4.png)
+![Xác nhận tồn tại bảng users](./images/image-26.png)
 
 **Bước 4:** Kiểm tra tài khoản `administrator` có tồn tại trong bảng người dùng.
 
@@ -181,7 +181,7 @@ Phản hồi đúng cho thấy bảng `users` tồn tại.
 ```
 
 Phản hồi đúng xác nhận có user `administrator`.
-![Xác nhận user administrator](image-5.png)
+![Xác nhận user administrator](./images/image-27.png)
 
 **Bước 5:** Xác định độ dài mật khẩu của `administrator`.
 
@@ -191,10 +191,10 @@ Phản hồi đúng xác nhận có user `administrator`.
 ```
 
 Điều kiện `>19` đúng nhưng `>20` sai, suy ra mật khẩu dài **20 ký tự**.
-![Xác định độ dài mật khẩu](image-6.png)
+![Xác định độ dài mật khẩu](./images/image-28.png)
 
 **Bước 6:** Gửi request sang Burp Intruder để brute-force từng vị trí ký tự của mật khẩu bằng tập ký tự chữ và số.
-![Gửi sang Intruder](image-7.png)
+![Gửi sang Intruder](./images/image-29.png)
 
 Ví dụ payload cho vị trí thứ 1:
 
@@ -203,21 +203,21 @@ Ví dụ payload cho vị trí thứ 1:
 ```
 
 **Bước 7:** Lặp lại cho từng vị trí từ 1 đến 20, ghi nhận ký tự khi phản hồi trả về `Welcome back`.
-![Thu ký tự từng vị trí](image-8.png)
+![Thu ký tự từng vị trí](./images/image-30.png)
 
 **Bước 8:** Sau khi ghép đủ 20 ký tự, đăng nhập tài khoản `administrator` bằng mật khẩu tìm được để hoàn thành lab.
-![Hoàn thành lab](image-10.png)
+![Hoàn thành lab](./images/image-31.png)
 
 ## Blind SQL injection with conditional errors
 
 **Bước 1:** Truy cập một danh mục sản phẩm bất kỳ, bắt request và gửi sang Burp Repeater để kiểm tra tham số có thể chèn payload.
-![Yeu cau bai lab](image-12.png)
+![Yeu cau bai lab](./images/image-32.png)
 **Bước 2:** Kiem tra thay rang khi them 1 ky tu `'` thi co so du lieu tra ve thong tin loi, nhung them 2 ky tu `'` thi co so du lieu tra ve trang binh thuong nen ta thay 1 ky tu `'` la dieu kien xay ra loi
-![alt text](image-13.png)
-![alt text](image-14.png)
+![alt text](./images/image-33.png)
+![alt text](./images/image-34.png)
 **Bước 3:** Kiem tra bang cach test 1 cau inject khac ta su dung cau truy van noi chuoi de xac dinh rang co so du lieu tra ve loi
-![alt text](image-15.png)
-![alt text](image-16.png)
+![alt text](./images/image-35.png)
+![alt text](./images/image-36.png)
 Ta thay khi them FROM dual ta thay co so du lieu tra ve dung trang ban dau nen ta xac dinh co so du lieu su dung Oracle
 **Bước 4:**
 
@@ -225,18 +225,49 @@ Ta thay khi them FROM dual ta thay co so du lieu tra ve dung trang ban dau nen t
 
 ## 2FA simple bypass
 
-**Buoc 1:** Dang nhap vao tai khoan carlos được cho trước
-![alt text](image-19.png)
-Ta thấy yêu cầu mã code để xác nhận tiến trình đăng nhập
-**Bước 2:** Tiến hành vào mục Email client để lấy mã xác nhận đăng nhập
-![alt text](image-20.png)
-**Bước 3:** Quay trở lại trang ta thấy bài lab đã được giải quyết
-![alt text](image-21.png)
+### Mục tiêu
+
+Khai thác lỗi xác thực 2FA chưa chặt chẽ để đăng nhập vào tài khoản `carlos` mà không cần hoàn tất bước nhập mã 2FA.
+
+### Các bước thực hiện
+
+**Bước 1:** Đăng nhập vào tài khoản `carlos` được cung cấp trong đề bài.
+![Đăng nhập tài khoản carlos](./images/image-37.png)
+
+Sau khi đăng nhập, hệ thống yêu cầu nhập mã xác nhận 2FA.
+
+**Bước 2:** Truy cập mục Email client để lấy mã xác nhận đăng nhập.
+![Lấy mã xác nhận từ Email client](./images/image-38.png)
+
+**Bước 3:** Quay lại luồng đăng nhập, hoàn tất xác thực và xác nhận lab đã được giải.
+![Lab hoàn thành](./images/image-39.png)
 
 ## Password reset broken logic
 
-Yeu cau bai lab:
-![alt text](image-17.png)
-**Buoc 1:** Thuc hien reset lai mat khau cho nguoi dung carlos
-![alt text](image-18.png)
-**Buoc 2:**
+### Mục tiêu
+
+Khai thác lỗi logic trong chức năng đặt lại mật khẩu để thay đổi mật khẩu của tài khoản `carlos`, sau đó đăng nhập và hoàn thành lab.
+
+### Các bước thực hiện
+
+Yêu cầu bài lab:
+![Yêu cầu bài lab](./images/image-40.png)
+
+**Bước 1:** Thực hiện thao tác đặt lại mật khẩu cho người dùng `wiener`.
+![Reset mật khẩu cho wiener](./images/image-41.png)
+
+**Bước 2:** Truy cập Email client để lấy liên kết reset mật khẩu.
+![Lấy link reset mật khẩu](./images/image-42.png)
+
+**Bước 3:** Tiến hành tạo mật khẩu mới và chặn request bằng Burp Suite.
+![Tạo mật khẩu mới](./images/image-43.png)
+![Bắt request bằng Burp Suite](./images/image-44.png)
+
+**Bước 4:** Chỉnh sửa request đổi mật khẩu, thay giá trị `username` từ `wiener` thành `carlos`.
+![Chỉnh sửa username trong request](./images/image-45.png)
+
+**Bước 5:** Gửi request đã chỉnh sửa thành công.
+![Request chỉnh sửa thành công](./images/image-46.png)
+
+**Bước 6:** Đăng nhập vào tài khoản `carlos` với mật khẩu mới để hoàn thành lab.
+![Đăng nhập carlos và hoàn thành lab](./images/image-47.png)
