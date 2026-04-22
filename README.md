@@ -276,6 +276,20 @@ Tiến hành tương tự cho tới khi hết 20 kí tự thực hiện đăng n
 ![alt text](./images/image-70.png)
 **Bước 6:** Tiến hành đăng nhập vào người dùng `administrator` và tiến hành hoàn thành bài lab
 ![alt text](./images/image-71.png)
+
+## SQL injection with filter bypass via XML encoding
+**Bước 1:** Kiểm tra xem tại storeId ta thấy khi thay thành `1+2` ta thấy response vẫn trả về số lượng units
+![alt text](image.png)
+**Bước 2:** Test thử câu lệnh chèn `UNION SELECT` ta thấy hành vi đã bị `WAF` block
+![alt text](image-1.png)
+**Bước 3:** Sử dụng `hackvertor` payload được chèn thêm vào và kiểm tra số lượng cột, ta thấy chỉ có 1 cột
+![alt text](image-2.png)
+**Bước 4:** Vì chỉ có 1 cột nên ta thực hiện việc nối chuỗi để trích xuất thông tin của username và password
+![alt text](image-3.png)
+**Bước 5:** Tiến hành truy xuất thông tin từ bảng users
+![alt text](image-4.png)
+**Bước 6:** Đăng nhập vào tài khoản administrator
+![alt text](image-5.png)
 # Authentication
 
 ## 2FA simple bypass
