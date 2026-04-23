@@ -327,6 +327,32 @@ Suy ra mật khẩu có độ dài **20 ký tự**.
 **Bước 6:** Đăng nhập vào tài khoản `administrator` bằng mật khẩu đã tìm được và hoàn thành lab.
 ![Đăng nhập administrator sau khi khôi phục mật khẩu](./images/image-71.png)
 
+## SQL injection with filter bypass via XML encoding
+
+### Mục tiêu
+
+Vượt qua cơ chế lọc đầu vào/WAF bằng XML encoding để khai thác SQL Injection, trích xuất thông tin tài khoản `administrator` và đăng nhập hoàn thành lab.
+
+### Các bước thực hiện
+
+**Bước 1:** Kiểm tra tham số `storeId` bằng biểu thức `1+2`, quan sát phản hồi vẫn trả về số lượng `units` hợp lệ.
+![Kiểm tra biểu thức tại storeId](./images/image-72.png)
+
+**Bước 2:** Thử payload chứa `UNION SELECT` theo cách thông thường, ghi nhận request bị WAF chặn.
+![UNION SELECT bị WAF chặn](./images/image-73.png)
+
+**Bước 3:** Dùng Hackvertor để encode payload và kiểm tra số lượng cột khả dụng; kết quả cho thấy truy vấn chỉ có **1 cột**.
+![Dùng Hackvertor để bypass filter và xác định số cột](./images/image-74.png)
+
+**Bước 4:** Do chỉ có 1 cột hiển thị, sử dụng kỹ thuật nối chuỗi để ghép dữ liệu `username` và `password` vào cùng một giá trị trả về.
+![Nối chuỗi để hiển thị username và password](./images/image-75.png)
+
+**Bước 5:** Truy xuất dữ liệu từ bảng `users` để lấy thông tin đăng nhập của tài khoản quản trị.
+![Truy xuất dữ liệu từ bảng users](./images/image-76.png)
+
+**Bước 6:** Dùng thông tin đã thu được để đăng nhập vào tài khoản `administrator` và hoàn thành lab.
+![Đăng nhập administrator thành công](./images/image-77.png)
+
 # Authentication
 
 ## 2FA simple bypass
