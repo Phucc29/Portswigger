@@ -210,72 +210,123 @@ Ví dụ payload cho vị trí thứ 1:
 
 ## Blind SQL injection with conditional errors
 
+### Mục tiêu
+
+Khai thác Blind SQL Injection dựa trên lỗi điều kiện (conditional errors) tại cookie `TrackingId` để suy ra mật khẩu của người dùng `administrator` và hoàn thành lab.
+
+### Các bước thực hiện
+
 **Bước 1:** Truy cập một danh mục sản phẩm bất kỳ, bắt request và gửi sang Burp Repeater để kiểm tra tham số có thể chèn payload.
 ![Yeu cau bai lab](./images/image-32.png)
-**Bước 2:** Kiem tra thay rang khi them 1 ky tu `'` thi co so du lieu tra ve thong tin loi, nhung them 2 ky tu `'` thi co so du lieu tra ve trang binh thuong nen ta thay 1 ky tu `'` la dieu kien xay ra loi
-![alt text](./images/image-33.png)
-![alt text](./images/image-34.png)
-**Bước 3:** Kiem tra bang cach test 1 cau inject khac ta su dung cau truy van noi chuoi de xac dinh rang co so du lieu tra ve loi
-![alt text](./images/image-35.png)
-![alt text](./images/image-36.png)
-Ta thay khi them FROM dual ta thay co so du lieu tra ve dung trang ban dau nen ta xac dinh co so du lieu su dung Oracle
 
-**Bước 4:** Thực hiện các câu inject với điều kiện đúng và sai để xem response của trang web. Với câu truy vấn với điều kiện đúng thì thực hiện phép tính 1/0 -> gây lỗi cho trang web
-![alt text](./images/image-48.png)
-Với điều kiện sai thì trả về trang web như bình thường
-![alt text](./images/image-49.png)
-**Bước 5:** Xác định sự tồn tại của username `administrator`
-![alt text](./images/image-50.png)
-![alt text](./images/image-51.png)
-**Bước 6:** Kiểm tra độ dài của password là bao nhiêu, qua đó xác định được độ dài password là 20
-![alt text](./images/image-52.png)
-![alt text](./images/image-53.png)
-![alt text](./images/image-54.png)
-**Bước 7:** Gửi request trên đến burp intruder để thực hiện việc đoán từng kí tự của mật khẩu. 
-Thực hiện set up payload để thực hiện sniper attack
-![alt text](./images/image-55.png)
-Sau đó đặt payload tại kí tự cần kiểm tra
-![alt text](./images/image-56.png)
-Thực hiện sniper attack ta thu được kí tự hợp lệ đầu tiên:
-![alt text](./images/image-57.png)
-Tiến hành tương tự cho tới khi hết 20 kí tự thực hiện đăng nhập vào người dùng adminisrtrator để hoàn thành bài lab
-**Bước 8:** Đăng nhập thành công vào administrator và hoàn thành bài lab
-![alt text](./images/image-58.png)
+**Bước 2:** Chèn ký tự `'` để kiểm tra phản hồi. Khi thêm 1 ký tự `'`, ứng dụng trả về lỗi; khi thêm 2 ký tự `''`, trang hoạt động bình thường. Từ đó xác định dấu `'` có thể làm phát sinh lỗi SQL.
+![Kiểm tra lỗi khi chèn một dấu nháy đơn](./images/image-33.png)
+![Kiểm tra phản hồi bình thường khi chèn hai dấu nháy đơn](./images/image-34.png)
+
+**Bước 3:** Thử thêm một payload nối chuỗi để xác minh cơ chế lỗi và nhận diện DBMS. Khi thêm `FROM dual`, phản hồi trở lại bình thường, suy ra hệ quản trị cơ sở dữ liệu là Oracle.
+![Thử payload nối chuỗi để xác minh điều kiện lỗi](./images/image-35.png)
+![Xác nhận dấu hiệu DB Oracle với FROM dual](./images/image-36.png)
+
+**Bước 4:** Dùng payload điều kiện đúng/sai để quan sát khác biệt phản hồi:
+
+- Với điều kiện đúng, thực hiện phép chia `1/0` để gây lỗi có chủ đích.
+- Với điều kiện sai, trang trả về bình thường.
+  ![Payload điều kiện đúng gây lỗi chia cho 0](./images/image-48.png)
+  ![Payload điều kiện sai trả về phản hồi bình thường](./images/image-49.png)
+
+**Bước 5:** Xác định sự tồn tại của username `administrator` bằng payload điều kiện.
+![Kiểm tra điều kiện tồn tại user administrator](./images/image-50.png)
+![Phản hồi xác nhận tồn tại tài khoản administrator](./images/image-51.png)
+
+**Bước 6:** Xác định độ dài mật khẩu của `administrator`, kết luận mật khẩu có **20 ký tự**.
+![Kiểm tra điều kiện độ dài mật khẩu theo ngưỡng](./images/image-52.png)
+![So sánh phản hồi để suy ra mật khẩu dài 20 ký tự](./images/image-53.png)
+![Xác nhận kết luận độ dài mật khẩu administrator](./images/image-54.png)
+
+**Bước 7:** Gửi request sang Burp Intruder để brute-force từng ký tự mật khẩu:
+
+- Thiết lập payload theo kiểu Sniper.
+- Đặt vị trí ký tự cần kiểm tra.
+- Chạy attack và lấy ký tự hợp lệ cho từng vị trí.
+  ![Cấu hình Burp Intruder ở chế độ Sniper](./images/image-55.png)
+  ![Đặt vị trí payload cho ký tự cần brute-force](./images/image-56.png)
+  ![Kết quả xác định ký tự hợp lệ đầu tiên](./images/image-57.png)
+
+Lặp lại đến hết 20 vị trí để thu được toàn bộ mật khẩu.
+
+**Bước 8:** Đăng nhập thành công vào tài khoản `administrator` và hoàn thành lab.
+![Đăng nhập administrator thành công và hoàn thành lab](./images/image-58.png)
 
 ## Visible error-based SQL injection
 
-**Bước 1:** Thực hiện chèn ký tự `'` vào sau TrackingId, ta thấy trang web trả về thông báo lỗi
-![alt text](./images/image-59.png)
-**Bước 2:** Thực hiện ép kiểu int cho password bằng cách sử dụng lệnh CAST
-![alt text](./images/image-60.png)
-**Bước 3:** Thực hiện comment tất cả những thành phần sau câu truy vấn
-![alt text](./images/image-61.png)
-**Bước 4:** Ta thấy db trả về thông báo lỗi vì từ nối end cần kiểm tra dữ liệu dạng boolean nên ta cần ép payload trả về điều kiện đúng hoặc sai, ta sử dụng `1=`
-![alt text](./images/image-62.png)
-**Bước 5:** Ta thấy db trả về thông báo lỗi có nhiều hơn 1 hàng trả về nên không in ra bất kỳ thông tin nào, ta cần ép mật khẩu trả về 1 dòng để kiểm tra xem output
-![alt text](./images/image-63.png)
-**Bước 6:** Db trả về mật khẩu của username `administrator` ta thực hiện đăng nhập vào tài khoản đó và hoàn thành bài lab
-![alt text](./images/image-64.png)
+### Mục tiêu
+
+Khai thác lỗi SQL Injection dạng hiển thị lỗi (visible error-based) để trích xuất mật khẩu của người dùng `administrator` và hoàn thành lab.
+
+### Các bước thực hiện
+
+**Bước 1:** Chèn ký tự `'` vào sau `TrackingId`, xác nhận ứng dụng trả về thông báo lỗi SQL.
+![Thông báo lỗi sau khi chèn nháy đơn vào TrackingId](./images/image-59.png)
+
+**Bước 2:** Dùng `CAST` để ép kiểu giá trị `password` sang `int`, từ đó tạo lỗi có kiểm soát và buộc DB lộ dữ liệu trong thông báo lỗi.
+![Dùng CAST để ép kiểu và tạo lỗi hiển thị](./images/image-60.png)
+
+**Bước 3:** Comment phần còn lại của câu truy vấn để payload được thực thi đúng ý.
+![Comment phần truy vấn phía sau để cố định payload](./images/image-61.png)
+
+**Bước 4:** Điều chỉnh payload để biểu thức trong `CASE WHEN` trả về điều kiện boolean hợp lệ (ví dụ dùng `1=1`).
+![Điều chỉnh biểu thức CASE WHEN về điều kiện boolean hợp lệ](./images/image-62.png)
+
+**Bước 5:** Khi lỗi báo có nhiều hơn một dòng trả về, bổ sung điều kiện để truy vấn chỉ trả về đúng 1 dòng cần kiểm tra.
+![Lỗi nhiều dòng trả về khi chưa giới hạn kết quả](./images/image-63.png)
+
+**Bước 6:** Nhận được mật khẩu của user `administrator`, đăng nhập vào tài khoản này để hoàn thành lab.
+![Trích xuất mật khẩu administrator từ thông báo lỗi](./images/image-64.png)
 
 ## Blind SQL injection with time delays
 
-**Bước 1:** Kiểm tra với từng loại cơ sở dữ liệu khác nhau, ta thấy trang web phản gồi trễ với câu lệnh delay của Postgres
-![alt text](./images/image-65.png)
+### Mục tiêu
+
+Xác định khả năng khai thác Blind SQL Injection dựa trên độ trễ phản hồi (time delay) và nhận diện DBMS đang sử dụng.
+
+### Các bước thực hiện
+
+**Bước 1:** Kiểm tra payload delay tương ứng với từng hệ quản trị cơ sở dữ liệu. Kết quả cho thấy ứng dụng phản hồi trễ với cú pháp delay của PostgreSQL, từ đó xác định DBMS là Postgres.
+![Kiểm tra payload time delay và nhận diện Postgres](./images/image-65.png)
 
 ## Blind SQL injection with time delays and information retrieval
 
-**Bước 1:** Kiểm tra xem db sử dụng loại nào bằng câu lệnh time delay, ta xác định được db của server trang web này là postgres
-![alt text](./images/image-66.png)
-**Bước 2:** Thực hiện kiểm tra điều kiện nếu `1=1` thì ta thấy thời gian phản hồi cuả server bị delay
-![alt text](./images/image-67.png)
-**Bước 3:** Thay điều kiện `1=1` thành điều kiện kiểm tra độ dài mật khẩu của username `administrator`. Quan sát ta thấy khi điều kiện length(password) > 1 thì server response sẽ bị delay, còn khi > 20 thì xảy ra điều kiện delay nên mật khẩu có độ dài 20 ký tự
-![alt text](./images/image-68.png)
-**Bước 4:** Gửi request này tới burp intruder, thực hiện thêm payload vào ký tự cần kiểm tra, set up payload là bruteforce từ `a->z` và `0->9` rồi thực hiện sniper attack
-![alt text](./images/image-69.png)
-**Bước 5:** Ta kiểm tra ở cột `Response received` chọn ký tự có thời gian phản hồi lâu nhất. Làm tương tự cho đến khi tìm xong 20 ký tự
-![alt text](./images/image-70.png)
-**Bước 6:** Tiến hành đăng nhập vào người dùng `administrator` và tiến hành hoàn thành bài lab
-![alt text](./images/image-71.png)
+### Mục tiêu
+
+Khai thác Blind SQL Injection theo cơ chế time delay để trích xuất mật khẩu của user `administrator` và hoàn thành lab.
+
+### Các bước thực hiện
+
+**Bước 1:** Dùng payload delay để nhận diện DBMS, xác định server sử dụng PostgreSQL.
+![Xác nhận DBMS bằng payload time delay của PostgreSQL](./images/image-66.png)
+
+**Bước 2:** Kiểm tra điều kiện nền tảng với `1=1`; khi điều kiện đúng, phản hồi bị delay.
+![Điều kiện 1 bằng 1 gây độ trễ phản hồi server](./images/image-67.png)
+
+**Bước 3:** Thay điều kiện nền tảng bằng điều kiện kiểm tra độ dài mật khẩu của `administrator`.
+
+Ví dụ:
+
+- `length(password) > 1` gây delay.
+- `length(password) > 20` không còn đúng.
+
+Suy ra mật khẩu có độ dài **20 ký tự**.
+![Kiểm tra độ dài mật khẩu qua điều kiện delay](./images/image-68.png)
+
+**Bước 4:** Gửi request sang Burp Intruder, chèn payload tại vị trí ký tự cần dò, cấu hình brute-force tập ký tự `a-z` và `0-9`, sau đó chạy Sniper attack.
+![Thiết lập Intruder brute-force ký tự mật khẩu](./images/image-69.png)
+
+**Bước 5:** Dựa vào cột `Response received`, chọn ký tự có thời gian phản hồi lớn nhất cho từng vị trí. Lặp lại đến khi đủ 20 ký tự.
+![Chọn ký tự theo thời gian phản hồi lớn nhất](./images/image-70.png)
+
+**Bước 6:** Đăng nhập vào tài khoản `administrator` bằng mật khẩu đã tìm được và hoàn thành lab.
+![Đăng nhập administrator sau khi khôi phục mật khẩu](./images/image-71.png)
+
 # Authentication
 
 ## 2FA simple bypass
