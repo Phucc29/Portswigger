@@ -205,3 +205,197 @@ Trong các hệ thống web hiện đại, ứng dụng thường được chia 
 - Cơ chế bảo mật (như Front-end/WAF) thường chỉ kiểm tra dòng Request Line. Thấy `/` là trang chủ, nó cho phép đi qua.
 - Kẻ tấn công lén nhét thêm `X-Original-URL: /admin/delete` vào HTTP Header.
 - Khi gói tin lọt được vào Back-end, framework Back-end đọc header `X-Original-URL` và tự động ghi đè đường dẫn, điều hướng luồng xử lý tới chức năng `/admin/delete` mà không hề kiểm tra lại quyền truy cập.
+
+Một kỹ thuật tấn công khác liên quan đến phương thức HTTP được sử dụng trong request. Các cơ chế kiểm soát ở lớp frontend được mô tả trong những phần trước hạn chế quyền truy cập dựa trên URL và phương thức HTTP. Tuy nhiên, một số trang web lại chấp nhận các phương thức yêu cầu HTTP khác nhau khi thực hiện cùng một hành động. Nếu kẻ tấn công có thể sử dụng phương thức GET để thực hiện các hành động trên một URL bị hạn chế, chúng có thể bypass cơ chế kiểm soát truy cập được triển khai ở tầng nền tảng.
+
+**Lab 6: Method-based access control can be circumvented**
+
+![Yêu cầu bài lab 6](images/image-24.png)
+
+Gửi gói tin upgrade tài khoản carlos đến Repeater:
+
+![Gửi gói tin đến Repeater](images/image-25.png)
+
+Thay đổi session request upgrade tài khoản carlos thành session của phiên đăng nhập wiener:
+
+![Thay đổi session](images/image-26.png)
+
+Tiến hành đổi phương thức sang GET và đổi username từ carlos sang wiener:
+
+![Đổi phương thức sang GET](images/image-27.png)
+![Kết quả](images/image-28.png)
+
+#### Lỗ hổng kiểm soát truy cập phát sinh từ sự sai lệch khi đối sánh URL
+
+Xảy ra do sự bất đồng bộ trong cơ chế parse/match URL giữa lớp bảo vệ (WAF, Proxy, Front-end Filter) và Backend. Lớp bảo vệ áp dụng quy tắc cứng nhắc, trong khi Backend lại dễ dãi, tạo ra khe hở cho phép Attacker bypass các luật Access Control.
+
+**Các kỹ thuật khai thác:**
+
+- **Thao túng chữ hoa/thường:**
+  - Bộ lọc phân biệt chữ hoa/thường nên chỉ chặn đúng giá trị được định nghĩa, nhưng Backend xử lý không phân biệt.
+  - Trạng thái bảo vệ: `DENY /admin/deleteUser`
+  - Payload bypass: `GET /ADMIN/DELETEUSER`
+- **Bổ sung Suffix:**
+  - Khai thác tính năng `useSuffixPatternMatch` của Spring. Tính năng này tự động cắt bỏ đuôi mở rộng trước khi điều hướng tới endpoint. Cấu hình bảo mật vòng ngoài không nhận diện được URL có gắn đuôi.
+  - Trạng thái bảo vệ: `DENY /admin/deleteUser`
+  - Payload bypass: `GET /admin/deleteUser.json` (hoặc `.anything`, `.xml`...)
+- **Dấu gạch chéo cuối:**
+  - Lớp bảo vệ xử lý nghiêm ngặt, coi `/path` và `/path/` là hai endpoint hoàn toàn khác biệt. Tuy nhiên, Backend framework lại tự động chuẩn hóa và gộp chung chúng thành một chức năng.
+  - Trạng thái bảo vệ: `DENY /admin/deleteUser`
+  - Payload Bypass: `GET /admin/deleteUser/`
+
+### Leo thang đặc quyền theo chiều ngang
+
+Leo thang đặc quyền theo chiều ngang xảy ra nếu một người dùng có thể giành quyền truy cập vào các tài nguyên thuộc về một người dùng khác, thay vì chỉ được truy cập vào tài nguyên của chính họ.
+
+Các cuộc tấn công leo thang đặc quyền theo chiều ngang có thể sử dụng các phương pháp khai thác tương tự như leo thang đặc quyền theo chiều dọc. Ví dụ, một người dùng có thể truy cập vào trang tài khoản cá nhân của họ bằng URL sau:
+
+`https://insecure-website.com/myaccount?id=123`
+
+Nếu kẻ tấn công thay đổi giá trị của tham số `id` thành ID của một người dùng khác, chúng có thể chiếm quyền truy cập vào trang tài khoản của người đó, cùng với tất cả dữ liệu và chức năng liên quan.
+
+**Lab 7: User ID controlled by request parameter**
+
+![Yêu cầu bài lab 7](images/image-29.png)
+
+Bắt gói tin đăng nhập của user `wiener` và gửi đến Repeater:
+
+![Gửi gói tin đăng nhập đến Repeater](images/image-30.png)
+
+Thay đổi `id` thành `carlos` và gửi lại, ta thu được API key của người dùng `carlos`:
+
+![Lấy API key của carlos](images/image-31.png)
+
+Submit API key ta sẽ solve được bài lab:
+
+![Bài lab đã được giải quyết](images/image-32.png)
+
+Trong một số ứng dụng, tham số có thể bị khai thác không có giá trị dễ đoán. Ví dụ, thay vì một số tăng dần, ứng dụng có thể sử dụng GUID để định danh người dùng. Điều này có thể ngăn kẻ tấn công đoán hoặc dự đoán định danh của một người dùng khác. Tuy nhiên, các GUID thuộc về người dùng khác vẫn có thể bị lộ ở những vị trí khác trong ứng dụng nơi người dùng được tham chiếu, chẳng hạn như trong tin nhắn hoặc phần đánh giá.
+
+**Lab 8: User ID controlled by request parameter, with unpredictable user IDs**
+
+![Yêu cầu bài lab 8](images/image-33.png)
+
+Tìm bài đăng bởi `carlos`, xem response ta thấy `id` của người dùng `carlos`:
+
+![Lấy id của carlos từ bài đăng](images/image-34.png)
+
+Sao chép `id` đó và gửi request login đến Repeater. Thay `id` của `wiener` thành `id` của `carlos`, ta thu được API key của `carlos`:
+
+![Lấy API key của carlos](images/image-35.png)
+
+Submit API key ta sẽ solve được bài lab:
+
+![Bài lab đã được giải quyết](images/image-36.png)
+
+Trong một số trường hợp, ứng dụng thực sự phát hiện ra người dùng không có quyền truy cập tài nguyên và trả về một phản hồi điều hướng (redirect) về trang đăng nhập. Tuy nhiên, phản hồi chứa lệnh điều hướng đó vẫn có thể đính kèm một số dữ liệu nhạy cảm thuộc về người dùng mục tiêu, do đó cuộc tấn công vẫn diễn ra thành công.
+
+**Lab 9: User ID controlled by request parameter with data leakage in redirect**
+
+![Yêu cầu bài lab 9](images/image-37.png)
+
+Thay đổi `id` từ `wiener` thành `carlos` ta thu được API key của `carlos`:
+
+![Lấy API key của carlos](images/image-38.png)
+
+Submit API key của `carlos`, ta sẽ solve được bài lab:
+
+![Bài lab đã được giải quyết](images/image-39.png)
+
+### Leo thang đặc quyền từ hàng ngang sang hàng dọc
+
+**Mối liên hệ giữa hai loại leo thang:** Kẻ tấn công có thể lợi dụng lỗ hổng leo thang đặc quyền hàng ngang (truy cập tài khoản cùng cấp) để biến nó thành leo thang đặc quyền hàng dọc (truy cập tài khoản cấp cao hơn).
+
+**Cách thức thực hiện:** Sử dụng kỹ thuật thao túng tham số để truy cập trái phép vào tài khoản của người khác. Nếu tài khoản mục tiêu bị thao túng vô tình (hoặc cố ý) thuộc về một quản trị viên, cuộc tấn công sẽ chuyển từ hàng ngang sang hàng dọc.
+
+**Hậu quả:** Khi chiếm được trang tài khoản của admin, kẻ tấn công có thể biết được mật khẩu, đổi mật khẩu của admin, hoặc trực tiếp sử dụng các chức năng quản trị cấp cao của hệ thống.
+
+**Lab 10: User ID controlled by request parameter with password disclosure**
+
+![Yêu cầu bài lab 10](images/image-40.png)
+
+Bắt gói tin đăng nhập bằng tài khoản `wiener` và gửi tới Repeater:
+
+![Bắt gói tin đăng nhập](images/image-41.png)
+
+Đổi tham số `id` thành `administrator`:
+
+![Đổi id thành administrator](images/image-42.png)
+
+Quan sát trong response ta lấy được mật khẩu của tài khoản `administrator`, tiến hành đăng nhập và xóa người dùng `carlos`:
+
+![Đăng nhập admin và xóa carlos](images/image-43.png)
+
+### Lỗ hổng tham chiếu đối tượng trực tiếp không an toàn
+
+Là một dạng lỗ hổng thuộc nhóm Kiểm soát truy cập.
+
+**Nguyên nhân phát sinh:** Xảy ra khi hệ thống cho phép người dùng nhập dữ liệu để truy cập trực tiếp vào các đối tượng hệ thống, nhưng lại thiếu bước kiểm tra quyền hạn. Kẻ tấn công chỉ cần thay đổi/sửa đổi dữ liệu đầu vào này là có thể xem hoặc can thiệp vào dữ liệu của người khác.
+
+**Tầm ảnh hưởng:** Từng là một lỗ hổng kinh điển (được xếp vào OWASP Top 10 năm 2007) và là minh chứng điển hình cho việc sai sót trong lập trình dẫn đến việc các hàng rào bảo mật bị vô hiệu hóa hoàn toàn.
+
+**Truy cập tệp tĩnh**: Hệ thống lưu file nhạy cảm (như lịch sử chat, hóa đơn) theo quy luật tăng dần (như 12144.txt). Đổi tên file => đọc trộm được file của người khác.
+
+**Lab 11: Insecure direct object references**
+
+![Yêu cầu bài lab 11](images/image-44.png)
+
+Bắt gói tin thao tác `view transcript`:
+
+![Bắt gói tin thao tác view transcript](images/image-45.png)
+
+Gửi tới Repeater và thực hiện thay đổi đường dẫn tên file thành tên khác:
+
+![Thay đổi đường dẫn tên file](images/image-46.png)
+
+Trích xuất mật khẩu thành công, thực hiện đăng nhập để giải quyết bài lab:
+
+![Đăng nhập thành công và solve bài lab](images/image-47.png)
+
+### Lỗ hổng kiểm soát truy cập trong các quy trình nhiều bước
+
+**Bối cảnh:** Các chức năng phức tạp (như đổi thông tin, thanh toán, quản trị) thường được chia làm nhiều bước liên tiếp (Nhập -> Gửi -> Xác nhận).
+
+**Sai lầm mang tính giả định:** Nhà phát triển hệ thống thường chỉ đặt rào cản bảo mật ở các bước đầu (bước 1, 2) và chủ quan thả lỏng ở bước cuối (bước 3), vì nghĩ rằng "phải qua được bước 1, 2 thì mới tới được bước 3".
+
+**Cách thức khai thác:** Kẻ tấn công sẽ bỏ qua hoàn toàn các bước đầu tiên đã được bảo vệ. Chúng chế tạo một request gửi thẳng đến bước cuối cùng kèm theo các tham số cần thiết để thực thi lệnh trái phép mà không bị chặn.
+
+**Lab 12: Multi-step process with no access control on one step**
+
+![Yêu cầu bài lab 12](images/image-48.png)
+
+Đăng nhập vào tài khoản `administrator`, tiến hành upgrade tài khoản `carlos` và bắt gói tin đó:
+
+![Bắt gói tin upgrade tài khoản carlos](images/image-49.png)
+
+Gửi gói tin sang Repeater, thực hiện thay đổi `session` của `carlos` thành `session` của `wiener` và tham số `username=carlos` thành `wiener`:
+
+![Thay đổi session và username trong Repeater](images/image-50.png)
+
+Gửi gói tin này, ta thấy phản hồi `302 Found` => Thành công upgrade tài khoản `wiener` lên quyền `ADMIN`:
+
+![Nâng quyền thành công](images/image-51.png)
+
+### Kiểm soát truy cập dựa trên tiêu đề Referer
+
+**Bản chất của lỗ hổng:** Sử dụng tiêu đề `Referer` trong HTTP request làm thước đo để xác thực quyền truy cập của người dùng.
+
+**Sai lầm trong triển khai:** Hệ thống chỉ bảo vệ nghiêm ngặt trang cấu hình chính (ví dụ: `/admin`), nhưng các tính năng con (ví dụ: xóa người dùng `/admin/deleteUser`) thì lại kiểm tra một cách hời hợt bằng cách xem "yêu cầu này có phải được bấm từ trang `/admin` sang hay không" thông qua header `Referer`.
+
+**Cách thức khai thác:** Vì các tiêu đề HTTP (HTTP Headers) phía máy khách hoàn toàn có thể bị can thiệp và sửa đổi, kẻ tấn công chỉ cần tự tạo một yêu cầu đến thẳng trang con nhạy cảm và thêm thủ công/giả mạo dòng `Referer: https://insecure-website.com/admin` để đánh lừa hệ thống và thực thi lệnh trái phép.
+
+**Lab 13: Referer-based access control**
+
+![Yêu cầu bài lab 13](images/image-52.png)
+
+Đăng nhập vào tài khoản `administrator`, tiến hành upgrade `carlos`, tiến hành bắt gói tin này trên Burp Suite:
+
+![Bắt gói tin upgrade tài khoản](images/image-53.png)
+
+Đăng nhập vào tài khoản `wiener`, thực hiện việc gửi gói tin vừa bắt tới Repeater, tiến hành đổi `session` thành của `wiener`, và `username` là `wiener`:
+
+![Thay đổi session và username sang wiener](images/image-54.png)
+
+Request được gửi nhận được kết quả `302 Found` (hoặc `Found`), tức là đã upgrade thành công. Quay lại trang chủ thấy bài lab đã được giải quyết:
+
+![Nâng quyền thành công và giải quyết bài lab](images/image-55.png)
