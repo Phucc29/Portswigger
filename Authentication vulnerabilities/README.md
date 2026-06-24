@@ -312,4 +312,188 @@ Một số website cố gắng ngăn chặn điều này bằng cách tự độ
 
 Tuy nhiên, trên thực tế biện pháp này không hiệu quả vì một kẻ tấn công có kinh nghiệm vẫn có thể tự động hóa toàn bộ quy trình nhiều bước này bằng cách sử dụng macro trong Burp Intruder.
 
-Lab 8: 2FA bypass using a brute-force attack
+Các lỗ hổng trong những cơ chế xác thực khác
+
+Không chỉ trang đăng nhập mới có lỗ hổng.
+
+Các chức năng liên quan đến xác thực cũng là mục tiêu tấn công:
+- Đổi mật khẩu
+- Quên mật khẩu
+- Khôi phục tài khoản
+- Xác minh email
+- 2FA / MFA
+
+Nhiều website bảo vệ trang login rất kỹ nhưng lại cấu hình sai ở các chức năng phụ
+
+Hacker thường tạo một tài khoản bình thường để nghiên cứu các chức năng này rồi tìm cách:
+- Reset mật khẩu người khác.
+- Bỏ qua xác thực
+- Chiếm quyền tài khoản
+- Leo thang đặc quyền
+
+Duy trì trạng thái đăng nhập
+
+Nhiều ứng dụng web cung cấp chức năng "Remember Me" hoặc "Keep Me Logged In" nhằm duy trì trạng thái đăng nhập của người dùng sau khi đóng trình duyệt.
+
+Cơ chế này thường hoạt động bằng cách tạo một token xác thực và lưu trữ trong cookie trên trình duyệt người dùng. Khi người dùng truy cập lại website, server sẽ sử dụng cookie này để xác thực mà không yêu cầu đăng nhập lại.
+
+Nếu cookie được tạo từ các giá trị có thể dự đoán được như username, password hoặc timestamp, kẻ tấn công có thể phân tích cookie của chính mình để suy ra cơ chế sinh token.
+
+Một số ứng dụng chỉ sử dụng Base64 để mã hóa dữ liệu trong cookie
+
+Trong trường hợp cookie được tạo bằng hàm băm nhưng không sử dụng salt, kẻ tấn công có thể thực hiện brute-force hoặc dictionary attack để tìm ra giá trị gốc
+
+Tác động:
+- Bỏ qua quá trình đăng nhập.
+- Chiếm quyền truy cập tài khoản người dùng khác.
+- Duy trì truy cập trái phép trong thời gian dài.
+- Vượt qua cơ chế giới hạn số lần đăng nhập nếu website không giới hạn số lần thử cookie.
+
+Khuyến nghị:
+- Sử dụng token ngẫu nhiên có độ dài đủ lớn.
+- Không lưu username hoặc password trực tiếp trong cookie.
+- Không sử dụng Base64 như một cơ chế bảo mật.
+- Sử dụng cơ chế ký số hoặc mã hóa an toàn.
+- Thiết lập thời gian hết hạn hợp lý cho token.
+- Áp dụng giới hạn số lần thử đối với remember-me token tương tự như cơ chế đăng nhập.
+
+Lab 8: Brute-forcing a stay-logged-in cookie
+
+![alt text](image-35.png)
+
+Đăng nhập vào tài khoản wiener và tick nhớ mật khẩu, ta được cookie `stay-logged-in=d2llbmVyOjUxZGMzMGRkYzQ3M2Q0M2E2MDExZTllYmJhNmNhNzcw`  có dạng username:password. Bắt request đăng nhập thành công vào tài khoản wiener và gửi đến Intruder
+
+![alt text](image-36.png)
+
+Setup payload như sau: 
+
+![alt text](image-37.png)
+
+Grep - Match: Thêm Update email
+
+Thêm payload vào stay-logged-in để bruteforce mật khẩu. Lưu ý: Cần logout để server tin vào cookie stay-logged-in
+
+![alt text](image-38.png)
+
+Kết quả:
+
+![alt text](image-39.png)
+
+Bài lab được giải thành công:
+
+![alt text](image-40.png)
+
+Kẻ tấn công không cần tạo tài khoản riêng vẫn có thể khai thác lỗ hổng.
+
+Có thể đánh cắp Remember-Me Cookie thông qua các lỗ hổng như XSS.
+
+Sau khi có cookie, kẻ tấn công có thể phân tích cấu trúc và cơ chế tạo token.
+
+Nếu website sử dụng framework mã nguồn mở, cách tạo cookie có thể được công khai trong tài liệu hoặc mã nguồn.
+
+Một số website lưu hash của mật khẩu trong cookie.
+
+Nếu hash không sử dụng salt, kẻ tấn công có thể:
+- Tra cứu hash trên các cơ sở dữ liệu công khai.
+- Thực hiện dictionary attack.
+- Thực hiện brute-force để tìm mật khẩu gốc.
+
+Trong một số trường hợp, mật khẩu thực có thể bị khôi phục từ hash nếu người dùng sử dụng mật khẩu phổ biến.
+
+Salt giúp chống tra cứu hash có sẵn và làm tăng độ khó của brute-force.
+
+Việc lưu thông tin xác thực hoặc hash yếu trong cookie có thể dẫn đến:
+- Chiếm quyền tài khoản.
+- Bỏ qua cơ chế đăng nhập.
+- Rò rỉ thông tin xác thực của người dùng.
+
+Lab 9: Offline password cracking
+
+![alt text](image-41.png)
+
+Tiến hành đăng nhập vào tài khoản wiener và thực hiện comment 1 alert cơ bản `<script>alert(1)</script>` ta thấy alert này được thực thi
+
+![alt text](image-42.png)
+
+Tiến hành chèn payload nhằm lấy cookie của người dùng carlos trên trình duyệt
+
+![alt text](image-43.png)
+
+Truy cập vào Exploit server, vào mục access log
+
+![alt text](image-44.png)
+
+Thấy dòng log này khả nghi, kiểm tra bằng cách decode base64
+
+![alt text](image-45.png)
+
+Kết quả:
+
+![alt text](image-46.png)
+
+Crack mã hash MD5 thu được:
+
+![alt text](image-47.png)
+
+Đăng nhập vào carlos và xóa tài khoản:
+
+![alt text](image-48.png)
+
+Đặt lại mật khẩu người dùng:
+
+Reset password là chức năng bắt buộc nhưng rất rủi ro về bảo mật.
+
+Không thể dùng xác thực mật khẩu thông thường khi user quên mật khẩu
+
+Website phải dùng phương pháp xác thực thay thế để đảm bảo đúng chủ tài khoản
+
+Có nhiều cách triển khai reset password, mức độ an toàn khác nhau.
+
+Vấn đề việc gửi mật khẩu qua email:
+- Không nên gửi lại mật khẩu cũ cho người dùng.
+- Một số hệ thống tạo mật khẩu mới và gửi qua email.
+- Rủi ro:
+    - Nếu mật khẩu không hết hạn nhanh → dễ bị tấn công MITM
+    - Nếu người dùng không đổi ngay → tăng nguy cơ bị lộ
+- Email không an toàn tuyệt đối:
+    - Lưu trữ lâu dài
+    - Không thiết kế để chứa dữ liệu nhạy cảm.
+    - Có thể bị đồng bộ qua nhiều thiết bị → tăng nguy cơ bị lộ.
+
+Đặt lại mật khẩu qua URL:
+- Website gửi cho user 1 link reset mật khẩu duy nhất
+- Dùng tham số dễ đoán như: `?user=victim-user`
+- Lỗ hổng: Attacker chỉ cần sửa user là có thể reset password của người khác
+- Cách khắc phục: Dùng token ngẫu nhiên, khó đoán và token không chưa thông tin user, không thể đoán được
+- Cơ chế đúng: Backend kiểm tra token tồn tại không, xác định token thuộc user nào, token có thời gian hết hạn ngắn và bị xóa ngay sau khi dùng
+- Lỗi bảo mật: Không kiểm tra lại token khi submit form reset mật khẩu. Attacker có thể: dùng lại form reset, xóa token, reset password của user khác
+
+Lab 10: Password reset broken logic
+
+![alt text](image-49.png)
+
+Gửi request đổi mật khẩu sang Repeater
+
+![alt text](image-50.png)
+
+Thực hiện đổi tên username từ wiener sang carlos và gửi lại request
+
+![alt text](image-51.png)
+
+Tiến hành đăng nhập vào carlos với mật khẩu mới:
+
+![alt text](image-52.png)
+
+URL reset password được tạo động (dynamic) → có thể không an toàn.
+
+Có thể xảy ra lỗ hổng password reset poisoning.
+
+Attacker có thể:
+- Đánh cắp token reset của user khác
+- Chiếm quyền reset mật khẩu
+
+Hậu quả: thay đổi mật khẩu tài khoản nạn nhân
+
+Lab 11: Password reset poisoning via middleware
+
+![alt text](image-53.png)
