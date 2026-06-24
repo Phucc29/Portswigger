@@ -363,146 +363,151 @@ Khuyến nghị:
 
 Lab 8: Brute-forcing a stay-logged-in cookie
 
-![alt text](image-35.png)
+![alt text](images/image-35.png)
 
-Đăng nhập vào tài khoản wiener và tick nhớ mật khẩu, ta được cookie `stay-logged-in=d2llbmVyOjUxZGMzMGRkYzQ3M2Q0M2E2MDExZTllYmJhNmNhNzcw` có dạng username:password. Bắt request đăng nhập thành công vào tài khoản wiener và gửi đến Intruder
+Đăng nhập vào tài khoản `wiener` và check chọn "Remember me", ta nhận được cookie `stay-logged-in=d2llbmVyOjUxZGMzMGRkYzQ3M2Q0M2E2MDExZTllYmJhNmNhNzcw` có cấu trúc dạng `username:password` bị mã hóa. Bắt request đăng nhập này và gửi vào Intruder.
 
-![alt text](image-36.png)
+![alt text](images/image-36.png)
 
-Setup payload như sau:
+Thiết lập payload:
 
-![alt text](image-37.png)
+![alt text](images/image-37.png)
 
-Grep - Match: Thêm Update email
+Grep - Match: Thêm chuỗi `Update email` để nhận diện response thành công.
 
-Thêm payload vào stay-logged-in để bruteforce mật khẩu. Lưu ý: Cần logout để server tin vào cookie stay-logged-in
+Thêm payload vào giá trị cookie `stay-logged-in` để brute-force mật khẩu. **Lưu ý:** Cần logout tài khoản trước để server xử lý xác thực thông qua file cookie này.
 
-![alt text](image-38.png)
+![alt text](images/image-38.png)
 
-Kết quả:
+Kết quả từ Intruder:
 
-![alt text](image-39.png)
+![alt text](images/image-39.png)
 
-Bài lab được giải thành công:
+Đăng nhập bằng mật khẩu tìm được, bài lab hoàn thành:
 
-![alt text](image-40.png)
+![alt text](images/image-40.png)
 
-Kẻ tấn công không cần tạo tài khoản riêng vẫn có thể khai thác lỗ hổng.
+**Lỗ hổng Remember-Me Cookie (Stay-logged-in):**
 
-Có thể đánh cắp Remember-Me Cookie thông qua các lỗ hổng như XSS.
-
-Sau khi có cookie, kẻ tấn công có thể phân tích cấu trúc và cơ chế tạo token.
-
-Nếu website sử dụng framework mã nguồn mở, cách tạo cookie có thể được công khai trong tài liệu hoặc mã nguồn.
-
-Một số website lưu hash của mật khẩu trong cookie.
-
-Nếu hash không sử dụng salt, kẻ tấn công có thể:
-
-- Tra cứu hash trên các cơ sở dữ liệu công khai.
-- Thực hiện dictionary attack.
-- Thực hiện brute-force để tìm mật khẩu gốc.
-
-Trong một số trường hợp, mật khẩu thực có thể bị khôi phục từ hash nếu người dùng sử dụng mật khẩu phổ biến.
-
-Salt giúp chống tra cứu hash có sẵn và làm tăng độ khó của brute-force.
-
-Việc lưu thông tin xác thực hoặc hash yếu trong cookie có thể dẫn đến:
-
-- Chiếm quyền tài khoản.
-- Bỏ qua cơ chế đăng nhập.
-- Rò rỉ thông tin xác thực của người dùng.
+- Kẻ tấn công có thể đánh cắp cookie (ví dụ: qua XSS) và phân tích cơ chế tạo token.
+- Nếu website lưu hash mật khẩu không có salt trong cookie, kẻ tấn công dễ dàng giải mã bằng cách tra cứu hash, dictionary attack hoặc brute-force.
+- Hậu quả: Dẫn đến rò rỉ thông tin, bypass cơ chế đăng nhập và chiếm quyền tài khoản.
 
 Lab 9: Offline password cracking
 
-![alt text](image-41.png)
+![alt text](images/image-41.png)
 
-Tiến hành đăng nhập vào tài khoản wiener và thực hiện comment 1 alert cơ bản `<script>alert(1)</script>` ta thấy alert này được thực thi
+Đăng nhập tài khoản `wiener` và viết một bình luận chứa payload `<script>alert(1)</script>`. Kết quả cho thấy đoạn script được thực thi (có lỗ hổng XSS).
 
-![alt text](image-42.png)
+![alt text](images/image-42.png)
 
-Tiến hành chèn payload nhằm lấy cookie của người dùng carlos trên trình duyệt
+Ứng dụng lỗi XSS này để chèn mã độc đánh cắp cookie của người dùng `carlos`:
 
-![alt text](image-43.png)
+![alt text](images/image-43.png)
 
-Truy cập vào Exploit server, vào mục access log
+Truy cập vào Exploit Server, mở mục Access log:
 
-![alt text](image-44.png)
+![alt text](images/image-44.png)
 
-Thấy dòng log này khả nghi, kiểm tra bằng cách decode base64
+Phát hiện chuỗi log khả nghi, thực hiện decode Base64:
 
-![alt text](image-45.png)
+![alt text](images/image-45.png)
 
-Kết quả:
+Kết quả giải mã:
 
-![alt text](image-46.png)
+![alt text](images/image-46.png)
 
-Crack mã hash MD5 thu được:
+Crack mã hash MD5 thu được để lấy mật khẩu:
 
-![alt text](image-47.png)
+![alt text](images/image-47.png)
 
-Đăng nhập vào carlos và xóa tài khoản:
+Sử dụng mật khẩu vừa crack, đăng nhập tài khoản `carlos` và vào mục xóa tài khoản:
 
-![alt text](image-48.png)
+![alt text](images/image-48.png)
 
-Đặt lại mật khẩu người dùng:
+**Rủi ro từ chức năng Đặt lại mật khẩu (Reset Password):**
 
-Reset password là chức năng bắt buộc nhưng rất rủi ro về bảo mật.
-
-Không thể dùng xác thực mật khẩu thông thường khi user quên mật khẩu
-
-Website phải dùng phương pháp xác thực thay thế để đảm bảo đúng chủ tài khoản
-
-Có nhiều cách triển khai reset password, mức độ an toàn khác nhau.
-
-Vấn đề việc gửi mật khẩu qua email:
-
-- Không nên gửi lại mật khẩu cũ cho người dùng.
-- Một số hệ thống tạo mật khẩu mới và gửi qua email.
-- Rủi ro:
-  - Nếu mật khẩu không hết hạn nhanh → dễ bị tấn công MITM
-  - Nếu người dùng không đổi ngay → tăng nguy cơ bị lộ
-- Email không an toàn tuyệt đối:
-  - Lưu trữ lâu dài
-  - Không thiết kế để chứa dữ liệu nhạy cảm.
-  - Có thể bị đồng bộ qua nhiều thiết bị → tăng nguy cơ bị lộ.
-
-Đặt lại mật khẩu qua URL:
-
-- Website gửi cho user 1 link reset mật khẩu duy nhất
-- Dùng tham số dễ đoán như: `?user=victim-user`
-- Lỗ hổng: Attacker chỉ cần sửa user là có thể reset password của người khác
-- Cách khắc phục: Dùng token ngẫu nhiên, khó đoán và token không chưa thông tin user, không thể đoán được
-- Cơ chế đúng: Backend kiểm tra token tồn tại không, xác định token thuộc user nào, token có thời gian hết hạn ngắn và bị xóa ngay sau khi dùng
-- Lỗi bảo mật: Không kiểm tra lại token khi submit form reset mật khẩu. Attacker có thể: dùng lại form reset, xóa token, reset password của user khác
+- **Gửi mật khẩu mới qua email:** Email kém an toàn, gửi đi dễ bị rò rỉ hoặc bị tấn công MITM.
+- **Reset qua URL với tham số dễ đoán** (`?user=victim`): Kẻ tấn công dễ lấy URL rồi đổi `user` để chiếm tài khoản người khác.
+- **Cách khắc phục:** Sử dụng token ngẫu nhiên, khó đoán, không chứa thông tin user, có thời gian hết hạn ngắn và chỉ dùng 1 lần. Backend phải kiểm tra đối chiếu token chặt chẽ ở mọi khâu trước khi submit thay đổi.
 
 Lab 10: Password reset broken logic
 
-![alt text](image-49.png)
+![alt text](images/image-49.png)
 
-Gửi request đổi mật khẩu sang Repeater
+Gửi request đổi mật khẩu sang Repeater.
 
-![alt text](image-50.png)
+![alt text](images/image-50.png)
 
-Thực hiện đổi tên username từ wiener sang carlos và gửi lại request
+Sửa thông số username từ `wiener` thành `carlos` và gửi lại request.
 
-![alt text](image-51.png)
+![alt text](images/image-51.png)
 
-Tiến hành đăng nhập vào carlos với mật khẩu mới:
+Đăng nhập vào `carlos` bằng mật khẩu mới vừa đổi để hoàn thành:
 
-![alt text](image-52.png)
+![alt text](images/image-52.png)
 
-URL reset password được tạo động (dynamic) → có thể không an toàn.
-
-Có thể xảy ra lỗ hổng password reset poisoning.
-
-Attacker có thể:
-
-- Đánh cắp token reset của user khác
-- Chiếm quyền reset mật khẩu
-
-Hậu quả: thay đổi mật khẩu tài khoản nạn nhân
+**Password Reset Poisoning:**
+Xảy ra khi URL reset password được tạo động (dynamic) và bị attacker thao túng. Kẻ tấn công có thể đánh cắp token reset của user khác, chiếm quyền và thay đổi mật khẩu tài khoản.
 
 Lab 11: Password reset poisoning via middleware
 
-![alt text](image-53.png)
+![alt text](images/image-53.png)
+
+Bắt request yêu cầu quên mật khẩu của `wiener`, chuyển sang Repeater và bổ sung header `X-Forwarded-Host: <exploit-server>`.
+
+**Lỗ hổng qua Header `X-Forwarded-Host`:**
+Header `X-Forwarded-Host` dùng để báo cho backend biết domain thực tế của client qua proxy. Trong lab này, backend tin tưởng tuyệt đối giá trị này mà không kiểm duyệt. Hậu quả là backend tạo link reset mật khẩu nhưng trỏ thẳng tới máy chủ web do kẻ tấn công kiểm soát (Exploit Server).
+
+![alt text](images/image-54.png)
+
+Qua response, có thể thấy link reset mật khẩu trên email đã bị đổi hướng.
+
+![alt text](images/image-55.png)
+
+Thao túng request thay đổi bằng Exploit Server, đổi username cần reset thành `carlos`.
+
+![alt text](images/image-56.png)
+
+Kiểm tra mục Access log trên Exploit Server, ta thu được request kèm token reset mật khẩu của `carlos`.
+
+![alt text](images/image-57.png)
+
+Sử dụng URL reset chính chủ, thay thế bằng token thu được và tiến hành đổi mật khẩu cho `carlos`.
+
+![alt text](images/image-58.png)
+
+Đăng nhập vào tài khoản `carlos` bằng mật khẩu mới để giải quyết bài lab.
+
+![alt text](images/image-59.png)
+
+**Lỗ hổng trong chức năng Đổi mật khẩu:**
+Chức năng này đòi hỏi xác thực mật khẩu cũ giống việc đăng nhập, nên cũng chịu rủi ro Brute-force tương tự. Nếu ứng dụng truyền `username` dưới dạng trường khóa ẩn (`hidden field`) mà không kiểm tra chặt phiên đăng nhập, kẻ tấn công dễ dàng đổi giá trị này bằng proxy để:
+
+- Dò tìm danh sách người dùng.
+- Brute-force mật khẩu của tài khoản khác.
+- Chiếm quyền đoạt tài khoản khi hệ thống có xác thực yếu.
+
+Lab 12: Password brute-force via password change
+
+![alt text](images/image-60.png)
+
+Đăng nhập vào tài khoản `wiener` và tiến hành đổi mật khẩu. Thử nghiệm nhập sai thông tin ở ô mật khẩu hiện tại:
+
+![alt text](images/image-61.png)
+
+Tiếp tục thử nghiệm nhập đúng mật khẩu hiện tại nhưng nhập 2 ô mật khẩu mới (New password và Confirm) không khớp nhau:
+
+![alt text](images/image-62.png)
+
+Gửi request sang Intruder. Thêm payload vào vị trí mật khẩu hiện tại để brute-force, đồng thời đổi biến `username` thành `carlos`. Cấu hình Grep - Match với chuỗi `New passwords do not match` (dấu hiệu nhận biết mật khẩu hiện tại được nhập đúng):
+
+![alt text](images/image-63.png)
+
+Tiến hành brute-force, ta tìm ra được mật khẩu của `carlos`:
+
+![alt text](images/image-64.png)
+
+Đăng nhập vào tài khoản `carlos` bằng mật khẩu mới để hoàn thành bài lab:
+
+![alt text](images/image-65.png)
