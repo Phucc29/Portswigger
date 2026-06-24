@@ -61,69 +61,69 @@ Website sẽ bị compromise nếu attacker:
 
 ### Lab 1: Username enumeration via different responses
 
-![alt text](/images/image.png)
+![alt text](images/image.png)
 
 Bắt gói tin đăng nhập và gửi tới Burp Intruder thực hiện bruteforce để tìm tài khoản và mật khẩu
 
-![alt text](/images/image-1.png)
+![alt text](images/image-1.png)
 
 Chèn payload vào username
 
-![alt text](/images/image-2.png)
+![alt text](images/image-2.png)
 
 Tìm được username
 
-![alt text](/images/image-3.png)
+![alt text](images/image-3.png)
 
 Làm tương tự tìm mật khẩu
 
 Đăng nhập và solve bài lab
 
-![alt text](/images/image-4.png)
+![alt text](images/image-4.png)
 
 ### Lab 2: Username enumeration via subtly different responses
 
-![alt text](/images/image-5.png)
+![alt text](images/image-5.png)
 
 Bắt gói tin đăng nhập và chèn payload vào vị trí username
 
-![alt text](/images/image-6.png)
+![alt text](images/image-6.png)
 
 Thêm điều kiện grep-match
 
-![alt text](/images/image-7.png)
+![alt text](images/image-7.png)
 
 Ta tìm được username không bị lỗi `Invalid username or password.`
 
-![alt text](/images/image-8.png)
+![alt text](images/image-8.png)
 
 Làm tương tự với cách tìm mật khẩu, tìm được mật khẩu đúng với status code khác với các mật khẩu còn lại
 
-![alt text](/images/image-9.png)
+![alt text](images/image-9.png)
 
 Tiến hành đăng nhập và solve bài lab
 
-![alt text](/images/image-10.png)
+![alt text](images/image-10.png)
 
 ### Lab 3: Username enumeration via response timing
 
-![alt text](/images/image-11.png)
+![alt text](images/image-11.png)
 
 Vì bài lab này giới hạn nếu nhập sai tài khoản hoặc mật khẩu quá 5 lần sẽ phải chờ 30 phút để reset lại nên ta cần chèn `X-Forwarded-For: §IP§` vì mỗi request sẽ giả mạo 1 IP khác nhau nên Server tưởng là các IP khác nhau.
 
-![alt text](/images/image-12.png)
+![alt text](images/image-12.png)
 
 Chèn payload vào username, IP và bruteforce, ở đây ta để mật khẩu dài để khuếch đại sự khác biệt về thời gian phản hồi giữa username tồn tại và không tồn tại
 
-![alt text](/images/image-13.png)
+![alt text](images/image-13.png)
 
 Ta tìm được username, tương tự đặt payload vào password
 
-![alt text](/images/image-14.png)
+![alt text](images/image-14.png)
 
 Tiến hành đăng nhập bằng username và password vừa tìm, ta solve được bài lab
 
-![alt text](/images/image-15.png)
+![alt text](images/image-15.png)
 
 ## Lỗ hổng trong cơ chế chống Brute Force
 
@@ -136,25 +136,25 @@ Tuy nhiên cả hai cách đều có thể tồn tại lỗ hổng. Khi login th
 
 ### Lab 4: Broken brute-force protection, IP block
 
-![alt text](/images/image-16.png)
+![alt text](images/image-16.png)
 
 Bắt gói tin đăng nhập và gửi tới Intruder
 
-![alt text](/images/image-17.png)
+![alt text](images/image-17.png)
 
 Vì trang web có cơ chế nếu đăng nhập sai quá 3 lần thì sẽ bị chặn, nhưng nếu sai 1 lần rồi đăng nhập đúng bằng 1 tài khoản khác thì sẽ reset lại. Nên tạo 1 danh sách username và password xen tài khoản wiener:peter để reset lại
 
-![alt text](/images/image-18.png)
+![alt text](images/image-18.png)
 
 Cấu hình Resource pool: Maximum concurrent requests: 1. Mục đích đảm bảo các request được gửi theo đúng thứ tự.
 
 Tiến hành bruteforce thì ta tìm ra mật khẩu người dùng carlos
 
-![alt text](/images/image-19.png)
+![alt text](images/image-19.png)
 
 Tiến hành đăng nhập và solve bài lab
 
-![alt text](/images/image-20.png)
+![alt text](images/image-20.png)
 
 ## Khóa tài khoản
 
@@ -164,24 +164,24 @@ Các phản hồi từ server cho biết tài khoản đã bị khóa cũng có 
 
 ### Lab 5: Username enumeration via account lock
 
-![alt text](/images/image-21.png)
+![alt text](images/image-21.png)
 
 Đặt payload tại 2 vị trí username và cuối hàng. Mục đích đặt 1 payload cuối hàng để thử với mỗi username 5 lần
 
-![alt text](/images/image-22.png)
+![alt text](images/image-22.png)
 
 Ta tìm ra được username là adsl
 
-![alt text](/images/image-23.png)
+![alt text](images/image-23.png)
 
 Thêm payload vào password, tại Settings/Grep-Match, ta bắt dòng lỗi You have made too many incorrect login attempts. nếu dòng nào không có hàng này thì khả năng đó là mật khẩu
 
-![alt text](/images/image-24.png)
+![alt text](images/image-24.png)
 
 Ta thử lần lượt thì mật khẩu cho username adsl là maggie
 từ đó đăng nhập và solve bài lab
 
-![alt text](/images/image-25.png)
+![alt text](images/image-25.png)
 
 ## Vulnerabilities in Multi-Factor Authentication (MFA)
 
@@ -261,15 +261,15 @@ Lỗi logic thường gặp: Username + Password -> Server tạo session rồi g
 
 ### Lab 6: 2FA simple bypass
 
-![alt text](/images/image-26.png)
+![alt text](images/image-26.png)
 
 Đăng nhập và xác thực tài khoản wiener
 
-![alt text](/images/image-27.png)
+![alt text](images/image-27.png)
 
 Đăng nhập vào tài khoản carlos đến bước nhập mã OTP thì trên URL thay thành endpoint `/my-account?id=carlos` qua đó bypass được bước nhập mã xác thực
 
-![alt text](/images/image-28.png)
+![alt text](images/image-28.png)
 
 ## Flawed two-factor verification logic
 
@@ -280,27 +280,27 @@ Lỗi logic thường gặp: Username + Password -> Server tạo session rồi g
 
 ### Lab 7: 2FA broken logic
 
-![alt text](/images/image-29.png)
+![alt text](images/image-29.png)
 
 Tiến hành đăng nhập vào tài khoản wiener, đến bước xác thực thứ 2 bắt gói tin này và gửi tới Intruder
 
-![alt text](/images/image-30.png)
+![alt text](images/image-30.png)
 
 Tại Intruder sửa tham số verify thành carlos và thêm payload vào vị trí mfa-code nhằm bruteforce mã này
 
-![alt text](/images/image-31.png)
+![alt text](images/image-31.png)
 
 Tiến hành bruteforce ta tìm được mã mfa-code: 0754
 
-![alt text](/images/image-32.png)
+![alt text](images/image-32.png)
 
 Tiến hành gửi lại gói tin này tới Repeater, sửa lại mã mfa-code vừa tìm được
 
-![alt text](/images/image-33.png)
+![alt text](images/image-33.png)
 
 Mở request này trên trình duyệt, ta giải quyết được bài lab
 
-![alt text](/images/image-34.png)
+![alt text](images/image-34.png)
 
 Brute-force mã xác thực 2FA
 
@@ -317,6 +317,7 @@ Các lỗ hổng trong những cơ chế xác thực khác
 Không chỉ trang đăng nhập mới có lỗ hổng.
 
 Các chức năng liên quan đến xác thực cũng là mục tiêu tấn công:
+
 - Đổi mật khẩu
 - Quên mật khẩu
 - Khôi phục tài khoản
@@ -326,6 +327,7 @@ Các chức năng liên quan đến xác thực cũng là mục tiêu tấn côn
 Nhiều website bảo vệ trang login rất kỹ nhưng lại cấu hình sai ở các chức năng phụ
 
 Hacker thường tạo một tài khoản bình thường để nghiên cứu các chức năng này rồi tìm cách:
+
 - Reset mật khẩu người khác.
 - Bỏ qua xác thực
 - Chiếm quyền tài khoản
@@ -344,12 +346,14 @@ Một số ứng dụng chỉ sử dụng Base64 để mã hóa dữ liệu tron
 Trong trường hợp cookie được tạo bằng hàm băm nhưng không sử dụng salt, kẻ tấn công có thể thực hiện brute-force hoặc dictionary attack để tìm ra giá trị gốc
 
 Tác động:
+
 - Bỏ qua quá trình đăng nhập.
 - Chiếm quyền truy cập tài khoản người dùng khác.
 - Duy trì truy cập trái phép trong thời gian dài.
 - Vượt qua cơ chế giới hạn số lần đăng nhập nếu website không giới hạn số lần thử cookie.
 
 Khuyến nghị:
+
 - Sử dụng token ngẫu nhiên có độ dài đủ lớn.
 - Không lưu username hoặc password trực tiếp trong cookie.
 - Không sử dụng Base64 như một cơ chế bảo mật.
@@ -361,11 +365,11 @@ Lab 8: Brute-forcing a stay-logged-in cookie
 
 ![alt text](image-35.png)
 
-Đăng nhập vào tài khoản wiener và tick nhớ mật khẩu, ta được cookie `stay-logged-in=d2llbmVyOjUxZGMzMGRkYzQ3M2Q0M2E2MDExZTllYmJhNmNhNzcw`  có dạng username:password. Bắt request đăng nhập thành công vào tài khoản wiener và gửi đến Intruder
+Đăng nhập vào tài khoản wiener và tick nhớ mật khẩu, ta được cookie `stay-logged-in=d2llbmVyOjUxZGMzMGRkYzQ3M2Q0M2E2MDExZTllYmJhNmNhNzcw` có dạng username:password. Bắt request đăng nhập thành công vào tài khoản wiener và gửi đến Intruder
 
 ![alt text](image-36.png)
 
-Setup payload như sau: 
+Setup payload như sau:
 
 ![alt text](image-37.png)
 
@@ -394,6 +398,7 @@ Nếu website sử dụng framework mã nguồn mở, cách tạo cookie có th�
 Một số website lưu hash của mật khẩu trong cookie.
 
 Nếu hash không sử dụng salt, kẻ tấn công có thể:
+
 - Tra cứu hash trên các cơ sở dữ liệu công khai.
 - Thực hiện dictionary attack.
 - Thực hiện brute-force để tìm mật khẩu gốc.
@@ -403,6 +408,7 @@ Trong một số trường hợp, mật khẩu thực có thể bị khôi phụ
 Salt giúp chống tra cứu hash có sẵn và làm tăng độ khó của brute-force.
 
 Việc lưu thông tin xác thực hoặc hash yếu trong cookie có thể dẫn đến:
+
 - Chiếm quyền tài khoản.
 - Bỏ qua cơ chế đăng nhập.
 - Rò rỉ thông tin xác thực của người dùng.
@@ -450,17 +456,19 @@ Website phải dùng phương pháp xác thực thay thế để đảm bảo đ
 Có nhiều cách triển khai reset password, mức độ an toàn khác nhau.
 
 Vấn đề việc gửi mật khẩu qua email:
+
 - Không nên gửi lại mật khẩu cũ cho người dùng.
 - Một số hệ thống tạo mật khẩu mới và gửi qua email.
 - Rủi ro:
-    - Nếu mật khẩu không hết hạn nhanh → dễ bị tấn công MITM
-    - Nếu người dùng không đổi ngay → tăng nguy cơ bị lộ
+  - Nếu mật khẩu không hết hạn nhanh → dễ bị tấn công MITM
+  - Nếu người dùng không đổi ngay → tăng nguy cơ bị lộ
 - Email không an toàn tuyệt đối:
-    - Lưu trữ lâu dài
-    - Không thiết kế để chứa dữ liệu nhạy cảm.
-    - Có thể bị đồng bộ qua nhiều thiết bị → tăng nguy cơ bị lộ.
+  - Lưu trữ lâu dài
+  - Không thiết kế để chứa dữ liệu nhạy cảm.
+  - Có thể bị đồng bộ qua nhiều thiết bị → tăng nguy cơ bị lộ.
 
 Đặt lại mật khẩu qua URL:
+
 - Website gửi cho user 1 link reset mật khẩu duy nhất
 - Dùng tham số dễ đoán như: `?user=victim-user`
 - Lỗ hổng: Attacker chỉ cần sửa user là có thể reset password của người khác
@@ -489,6 +497,7 @@ URL reset password được tạo động (dynamic) → có thể không an toà
 Có thể xảy ra lỗ hổng password reset poisoning.
 
 Attacker có thể:
+
 - Đánh cắp token reset của user khác
 - Chiếm quyền reset mật khẩu
 
