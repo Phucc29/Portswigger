@@ -511,3 +511,153 @@ Tiến hành brute-force, ta tìm ra được mật khẩu của `carlos`:
 Đăng nhập vào tài khoản `carlos` bằng mật khẩu mới để hoàn thành bài lab:
 
 ![alt text](images/image-65.png)
+
+Lab 13: Broken brute-force protection, multiple credentials per request
+
+![alt text](images/image-66.png)
+
+Tiến hành đăng nhập và bắt request này gửi tới Repeater
+
+![alt text](images/image-67.png)
+
+Sửa username thành carlos và mật khẩu là 1 mảng các mật khẩu có trong danh sách
+
+![alt text](images/image-68.png)
+
+Gửi request này ta thấy reponse trả về là 302. Thực hiện mở request này trên trình duyệt ta sẽ giải quyết được bài lab
+
+![alt text](images/image-69.png)
+
+OAuth là gì?
+- Là một cơ chế ủy quyền
+- Cho phép ứng dụng A truy cập một phần dữ liệu trên ứng dụng B
+
+Mục đích chính:
+- Chia sẻ dữ liệu giữa các ứng dụng.
+- Không cần tiết lộ mật khẩu cho ứng dụng bên thứ ba
+
+Lợi ích bảo mật:
+- Người dùng không phải đưa username/password cho ứng dụng khác.
+- Chỉ cấp những quyền cần thiết
+
+Ví dụ: Bạn đăng ký một ứng dụng mới và thấy "Cho phép ứng dụng truy cập danh bạ Gmail của bạn?". Khi bấm Allow, ứng dụng: 
+- Không biết mật khẩu Gmail của bạn.
+- Chỉ nhận quyền đọc danh bạ nếu bạn cho phép.
+
+OAuth thường xuất hiện ở:
+- "Login with Google"
+- "Login with Facebook"
+- "Login with GitHub"
+- "Continue with Microsoft"
+
+OAuth không phải xác thực:
+- OAuth = Authorization
+- Xác thực người dùng thường được thực hiện thông qua OpenID Connect hoặc các cơ chế mở rộng khác.
+
+Tuy nhiên nhiều website hiện nay dùng OAuth để:
+- Xác minh người dùng là ai.
+- Đăng nhập bằng tài khoản Google/Facebook/GitHub.
+
+Cách hoạt động của OAuth 2.0
+
+OAuth 2.0 ban đầu được phát triển để cho phép các ứng dụng chia sẻ quyền truy cập đến một số dữ liệu cụ thể của người dùng. Hệ thống hoạt động dựa trên sự tương tác giữa ba thành phần chính:
+
+- Client Application (Ứng dụng khách): Website hoặc ứng dụng muốn truy cập dữ liệu của người dùng.
+- Resource Owner (Chủ sở hữu tài nguyên): Người dùng sở hữu dữ liệu mà ứng dụng muốn truy cập.
+- OAuth Service Provider: Hệ thống quản lý dữ liệu của người dùng và kiểm soát quyền truy cập vào dữ liệu đó. Nhà cung cấp này cung cấp các API thông qua Authorization Server và Resource Server.
+
+OAuth hỗ trợ nhiều phương thức hoạt động khác nhau, được gọi là OAuth Flows hoặc Grant Types. Hai loại phổ biến nhất là Authorization Code Grant và Implicit Grant.
+
+Quy trình OAuth cơ bản gồm các bước sau:
+
+- Client Application gửi yêu cầu truy cập một phần dữ liệu của người dùng, đồng thời chỉ định loại Grant Type sẽ sử dụng và phạm vi quyền truy cập mong muốn.
+- Người dùng được chuyển đến dịch vụ OAuth để đăng nhập và xác nhận đồng ý cấp quyền cho ứng dụng.
+- Sau khi người dùng chấp thuận, ứng dụng nhận được một Access Token. Token này chứng minh rằng người dùng đã cho phép ứng dụng truy cập dữ liệu được yêu cầu.
+- Ứng dụng sử dụng Access Token để gửi các yêu cầu API đến Resource Server nhằm lấy dữ liệu của người dùng.
+
+OAuth xác thực
+
+Mặc dù OAuth ban đầu được thiết kế cho mục đích ủy quyền, theo thời gian nó đã phát triển thành một cơ chế xác thực người dùng.
+
+Ví dụ phổ biến nhất là chức năng:
+- Login with Google
+- Login with Facebook
+- Login with GitHub
+- Login with Microsoft
+
+Thay vì phải tạo tài khoản mới trên website, người dùng có thể sử dụng tài khoản mạng xã hội hoặc tài khoản đã có sẵn để đăng nhập.
+
+Về cơ bản, luồng OAuth vẫn giống như cơ chế ủy quyền thông thường, nhưng dữ liệu nhận được sẽ được sử dụng để xác định danh tính người dùng thay vì chỉ truy cập dữ liệu.
+
+Quy trình OAuth Authentication:
+
+1. Người dùng chọn "Đăng nhập bằng mạng xã hội".
+
+    Website (Client Application) gửi yêu cầu đến dịch vụ OAuth của Google/Facebook/GitHub để lấy một số thông tin nhận dạng người dùng, chẳng hạn như:
+
+    - Email
+    - User ID
+    - Tên tài khoản
+
+2. Người dùng đăng nhập và cấp quyền.
+
+Sau khi xác thực thành công, OAuth Provider cấp cho ứng dụng một Access Token.
+
+3. Website sử dụng Access Token để lấy thông tin người dùng.
+
+    Thông thường website sẽ gửi request tới endpoint:
+
+    /userinfo
+
+    để lấy các thông tin như:
+
+    - Email
+    - User ID
+    - Họ tên
+    - Avatar
+
+4. Website đăng nhập người dùng.
+
+    Sau khi nhận được dữ liệu định danh, website sử dụng thông tin này thay cho username truyền thống để xác định người dùng và tạo phiên đăng nhập.
+
+Lab 13: Authentication bypass via OAuth implicit flow
+
+![alt text](image.png)
+
+Bắt request xác thực và gửi đến Repeater
+
+![alt text](image-1.png)
+
+Thực hiện sửa lại email và username của request này thành của carlos
+
+![alt text](image-2.png)
+
+Mở request này trên browser
+
+![alt text](image-3.png)
+
+Bảo vệ CSRF không đầy đủ trong OAuth
+
+Một số thành phần trong OAuth là tùy chọn, nhưng có những thành phần gần như bắt buộc phải sử dụng để đảm bảo an toàn. Một trong số đó là tham số state.
+
+1. State Parameter là gì?
+  - state là một giá trị ngẫu nhiên, khó đoán.
+  - Thường được tạo từ Session của người dùng hoặc một giá trị liên kết với phiên làm việc hiện tại.
+  - Được gửi trong Authorization Request và nhận lại trong Authorization Response.
+  - Mục đích chính là chống tấn công CSRF trong OAuth.
+
+2. Dấu hiệu dễ bị tấn công
+
+  Nếu Authorization Request không chứa tham số state:
+  GET /authorize?client_id=123&redirect_uri=https://client.com/callback thì đây là dấu hiệu rất đáng chú ý khi pentest OAuth.
+
+  Điều này cho thấy ứng dụng có thể không có cơ chế chống CSRF cho OAuth Flow
+
+3. Tại sao nguy hiểm?
+
+  Kẻ tấn công có thể:
+  - Tự khởi tạo OAuth Flow.
+  - Nhận Authorization Code hợp lệ cho tài khoản của mình.
+  - Lừa trình duyệt nạn nhân hoàn tất phần còn lại của quy trình OAuth.
+
+  Đây là ý tưởng tương tự một cuộc tấn công CSRF truyền thống.
