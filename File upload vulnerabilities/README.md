@@ -1,476 +1,389 @@
-File Upload Vulnerabilities là gì?
+# File Upload Vulnerabilities
 
-Xảy ra khi máy chủ web cho phép người dùng tải tệp lên nhưng không kiểm tra hoặc kiểm tra không đầy đủ.
+Tài liệu này tổng hợp ghi chú về lỗ hổng tải tệp lên, cách web server xử lý file, các kỹ thuật bypass phổ biến và 5 lab PortSwigger liên quan.
 
-Các yếu tố cần được kiểm tra:
-- Tên tệp
-- Loại tệp
-- Nội dung tệp
-- Kích thước tệp
+## 1. File Upload Vulnerabilities là gì?
 
-Nguy cơ:
-- Kẻ tấn công có thể tải lên bất kỳ tệp nào, kể cả tệp độc hại.
-- Có thể tải lên server-side script (ví dụ: .php, .jsp, .aspx) để thực thi mã trên máy chủ (RCE)
+Lỗ hổng file upload xảy ra khi máy chủ cho phép người dùng tải tệp lên nhưng không kiểm tra đủ chặt chẽ hoặc kiểm tra sai cách.
 
-Mức độ ảnh hưởng:
-- Chỉ cần upload thành công cũng có thể gây hại (ví dụ: làm đầy dung lượng ổ đĩa)
-- Hoặc cần gửi thêm một HTTP request để truy cập tệp đã upload, từ đó kích hoạt việc thực thi mã trên server.
+Các thuộc tính cần kiểm tra thường gồm:
 
-Tác động của lỗ hổng File Upload
+- Tên file
+- Phần mở rộng
+- Loại file / MIME type
+- Nội dung thực tế của file
+- Kích thước file
 
-Mức độ ảnh hưởng phụ thuộc vào 2 yếu tố chính:
-- Website kiểm tra những gì của tệp
-- Các hạn chế được áp dụng sau khi tệp được upload thành công.
+Hậu quả có thể là:
 
-Trường hợp nghiêm trọng nhất:
-- Server không kiểm tra loại tệp.
-- Cho phép thực thi các file như .php, .jsp
-- Kẻ tấn công upload web shell → RCE → chiếm toàn quyền máy chủ.
+- Upload được file độc hại
+- Ghi đè file quan trọng
+- Làm đầy dung lượng lưu trữ để gây DoS
+- Upload web shell để dẫn tới RCE
 
-Nếu không kiểm tra tên tệp:
-- Có thể ghi đè các tệp quan trọng bằng cách upload tệp cùng tên.
-- Nếu kết hợp với Directory Traversal, có thể upload tệp vào những thư mục ngoài dự kiến.
+## 2. Vì sao file upload nguy hiểm?
 
-Nếu không giới hạn kích thước tệp:
-- Kẻ tấn công upload các tệp rất lớn hoặc nhiều tệp.
-- Làm đầy dung lượng ổ đĩa → DoS.
+Mức độ ảnh hưởng phụ thuộc vào hai câu hỏi chính:
 
-Nguyên nhân phát sinh lỗ hổng File Upload
+- Website kiểm tra những gì của file
+- Sau khi upload, server có cho phép file đó được thực thi hay không
 
-Thông thường, lập trình viên có triển khai cơ chế kiểm tra, nhưng thiết kế sai hoặc có thể bị bypass.
+Trường hợp nghiêm trọng nhất là:
 
-Blacklist không đầy đủ hoặc không an toàn.
-- Chỉ chặn một số đuôi file nguy hiểm.
-- Bỏ sót các đuôi file khác hoặc xử lý sai khi kiểm tra phần mở rộng
+- Server không kiểm tra loại file
+- Cho phép thực thi các file như `.php`, `.jsp`, `.aspx`
+- Kẻ tấn công upload web shell và chiếm quyền thực thi trên máy chủ
 
-Kiểm tra dựa trên thông tin dễ giả mạo.
-- Ví dụ: chỉ kiểm tra MIME Type hoặc các thuộc tính trong HTTP request.
-- Kẻ tấn công có thể dễ dàng sửa các giá trị này bằng Burp Suite
+Nếu không kiểm tra tên file, kẻ tấn công có thể:
 
-Validation không nhất quán.
-- Các máy chủ hoặc thư mục khác nhau áp dụng quy tắc kiểm tra khác nhau.
-- Sự không đồng nhất này tạo ra các điểm yếu có thể bị khai thác.
+- Ghi đè file hiện có
+- Kết hợp với path traversal để ghi file ra ngoài thư mục dự kiến
 
-Web server xử lý yêu cầu đối với file tĩnh như thế nào?
+Nếu không giới hạn kích thước, kẻ tấn công có thể:
 
-Trước đây, website chủ yếu gồm các file tĩnh (HTML, CSS, ảnh...), nên URL thường ánh xạ trực tiếp tới file trên hệ thống.
+- Upload file rất lớn
+- Upload hàng loạt file
+- Làm cạn tài nguyên lưu trữ
 
-Ngày nay website chủ yếu là website động nên URL không nhất thiết tương ứng với một file thật, nhưng web server vẫn phải xử lý các file tĩnh như CSS, JS, hình ảnh,...
+## 3. Nguyên nhân thường gặp
 
-Quy trình xử lý file tĩnh
+Các cơ chế kiểm tra file upload thường bị lỗi vì:
 
-1. Server nhận HTTP Request.
-2. Phân tích đường dẫn (URL).
-3. Xác định phần mở rộng của file (extension).
-4. So sánh extension với bảng ánh xạ Extension ↔ MIME Type.
-5. Quyết định cách xử lý tùy theo loại file và cấu hình server.
+- Blacklist không đầy đủ hoặc xử lý sai phần mở rộng
+- Tin tưởng dữ liệu do client gửi lên, nhất là `Content-Type`
+- Validation không nhất quán giữa các thư mục hoặc backend khác nhau
 
-TH1: File không thực thi (.jpg, .png, .gif, .css, .html)
+## 4. Web server xử lý file tĩnh như thế nào?
 
-Cách xử lý:
-- Không thực thi mã.
-- Đọc nội dung file.
-- Trả nguyên nội dung về cho client trong HTTP Response.
+Trước đây, website chủ yếu là file tĩnh nên URL thường ánh xạ trực tiếp tới file trên hệ thống. Ngày nay website chủ yếu là động, nhưng web server vẫn phải phục vụ file tĩnh như CSS, JS, ảnh, và xử lý chúng theo cơ chế riêng.
 
-TH2: File thực thi (.php, .jsp, .py, .asp)
+Quy trình cơ bản:
 
-Nếu server được cấu hình để chạy:
-- Đọc Header.
-- Đọc Cookie.
-- Đọc GET/POST parameters.
-- Gán vào các biến của chương trình.
-- Thực thi script.
-- Trả kết quả thực thi cho client.
+1. Server nhận HTTP request
+2. Phân tích URL
+3. Xác định extension
+4. So sánh extension với bảng ánh xạ MIME type
+5. Quyết định cách xử lý theo cấu hình server
 
-TH3: File thực thi nhưng server không hỗ trợ
+### 4.1 File không thực thi
 
-Nếu server không được cấu hình chạy loại file đó:
-- Thường trả về lỗi (404, 500,...).
-- Một số trường hợp cấu hình sai sẽ trả nguyên source code dưới dạng text.
-- Có thể dẫn đến Information Disclosure (rò rỉ mã nguồn và thông tin nhạy cảm).
+Ví dụ: `.jpg`, `.png`, `.gif`, `.css`, `.html`
 
-Content-Type Response Header
-- Cho biết server cho rằng nó đang trả về loại dữ liệu gì.
-- Nếu ứng dụng không tự đặt Content-Type, server sẽ tự xác định dựa trên Extension → MIME Type Mapping.
-- Có thể giúp pentester đoán server đang xử lý file như thế nào.
+Server thường:
 
-Khai thác tải lên tệp không hạn chế để triển khai một web shell
+- Không thực thi mã
+- Đọc nội dung file
+- Trả nguyên nội dung cho client
 
-Tình huống nguy hiểm nhất: 
+### 4.2 File thực thi
 
-Website: 
-- Cho phép upload các file thực thi (PHP, Java, Python,...).
-- Đồng thời server cũng được cấu hình để thực thi các file này.
+Ví dụ: `.php`, `.jsp`, `.py`, `.asp`
 
--> Hacker có thể upload một Web Shell.
+Nếu server được cấu hình để chạy loại file đó, nó sẽ:
 
-Web Shell là gì?
-- Là một script độc hại chạy trên web server.
-- Cho phép hacker thực thi lệnh từ xa chỉ bằng cách gửi HTTP Request đến file đó.
+- Đọc header
+- Đọc cookie
+- Đọc tham số GET/POST
+- Gán dữ liệu vào biến của chương trình
+- Thực thi script
+- Trả kết quả thực thi cho client
 
-Sau khi upload Web Shell thành công, Hacker gần như kiểm soát toàn bộ server:
-- Đọc file bất kỳ.
-- Ghi/chỉnh sửa file.
-- Đánh cắp dữ liệu nhạy cảm.
-- Upload thêm mã độc.
-- Thực thi lệnh hệ điều hành.
-- Pivot tấn công sang các máy khác trong mạng nội bộ.
-- Dùng server làm bàn đạp tấn công hệ thống khác.
+### 4.3 File thực thi nhưng server không hỗ trợ
 
-Ví dụ web shell PHP
-`<?php
+Nếu server không được cấu hình để chạy loại file đó:
+
+- Có thể trả lỗi 404, 500, hoặc tương tự
+- Có trường hợp trả nguyên source code dưới dạng text do cấu hình sai
+- Điều này có thể dẫn tới information disclosure
+
+## 5. Content-Type và multipart/form-data
+
+Khi submit form thông thường, trình duyệt hay dùng:
+
+- `Content-Type: application/x-www-form-urlencoded`
+
+Khi upload file, trình duyệt thường dùng:
+
+- `Content-Type: multipart/form-data`
+
+Trong multipart request, body được chia thành nhiều part riêng biệt. Mỗi input của form sẽ là một part.
+
+Ví dụ một part upload file thường có:
+
+- `Content-Disposition`
+- Tên field
+- `filename`
+- `Content-Type`
+
+`Content-Disposition` cho server biết:
+
+- Đây là field nào
+- File được đặt tên gì
+- Nó thuộc input nào
+
+Điểm yếu thường gặp là server tin hoàn toàn vào `Content-Type` do client gửi lên. Đây là giá trị có thể bị sửa bằng Burp Suite hoặc bất kỳ proxy nào.
+
+Biện pháp kiểm tra tốt hơn nên gồm:
+
+- Kiểm tra extension
+- Kiểm tra MIME type thực tế
+- Kiểm tra magic bytes / file signature
+- Kiểm tra nội dung file
+- Đổi tên file khi lưu
+- Không cho thực thi file đã upload
+
+## 6. Khai thác bằng web shell
+
+Web shell là một script độc hại chạy trên web server và cho phép thực thi lệnh từ xa thông qua HTTP request.
+
+Nếu website cho phép upload file thực thi và server cũng cho phép chạy chúng, kẻ tấn công có thể:
+
+- Đọc file tùy ý
+- Ghi hoặc sửa file
+- Đánh cắp dữ liệu
+- Upload thêm mã độc
+- Thực thi lệnh hệ điều hành
+- Pivot sang các máy khác trong mạng nội bộ
+
+Ví dụ web shell PHP:
+
+```php
+<?php
 echo file_get_contents('/path/to/target/file');
-?>`
+?>
+```
 
-Ý nghĩa: 
-- file_get_contents() đọc nội dung file trên server.
-- echo trả nội dung đó về HTTP Response.
-- Sau khi upload và truy cập file PHP này, hacker có thể đọc nội dung file mục tiêu.
+Script này đọc nội dung file trên server và trả kết quả qua response.
 
-Lab 1: Remote code execution via web shell upload
+Một web shell linh hoạt hơn:
 
-![alt text](images/image.png)
+```php
+<?php echo system($_GET['command']); ?>
+```
 
-Upload file php có nội dung như sau:
+Khi đó có thể gọi như:
 
-![alt text](images/image-1.png)
+```http
+GET /example/exploit.php?command=id HTTP/1.1
+```
 
-Bắt request upload thành công ta thấy thông điệp secret được phản hồi
+## 7. Cách server bảo vệ thư mục upload
 
-![alt text](images/image-2.png)
+Một lớp phòng thủ quan trọng là không cho phép server thực thi file do người dùng upload, đặc biệt trong các thư mục public.
 
-Nộp secret bài lab thành công
+Nếu file không được phép thực thi, server sẽ:
 
-![alt text](images/image-3.png)
+- Trả lỗi
+- Hoặc trả file dưới dạng plain text
 
-Một web shell linh hoạt hơn có thể như sau: `<?php echo system($_GET['command']); ?>`
+Lưu ý rằng cấu hình thực thi có thể khác nhau giữa các thư mục. Thư mục upload thường chỉ để lưu file người dùng và không cho chạy script, trong khi các thư mục ứng dụng có thể cho phép thực thi.
 
-Script này cho phép truyền bất kỳ lệnh hệ điều hành nào thông qua tham số command trên URL.
+Nếu kẻ tấn công tìm được cách ghi file vào thư mục cho phép thực thi, web shell vẫn có thể chạy và dẫn tới RCE.
 
-Ví dụ: `GET /example/exploit.php?command=id HTTP/1.1`
+Trong multipart/form-data, trường `filename=` đôi khi còn ảnh hưởng tới cách server lưu file trên đĩa, nên cần đặc biệt chú ý khi kiểm tra và khi pentest.
 
-Khi đó, server sẽ thực thi lệnh `id` và trả kết quả trong HTTP Response.
+Reverse proxy cũng có thể khiến cùng một request đi tới các backend khác nhau với hành vi khác nhau, tạo ra sự không nhất quán có thể khai thác được.
 
-Khai thác xác nhận thiếu sót của tập tin tải lên
-- Ngoài thực tế, rất hiếm website không có cơ chế bảo vệ upload file.
-- Tuy nhiên, có cơ chế bảo vệ không đồng nghĩa với an toàn.
-- Nếu việc kiểm tra được triển khai sai, hacker vẫn có thể:
-    - Bypass cơ chế kiểm tra.
-    - Upload web shell.
-    - Thực hiện Remote Code Execution (RCE).
+## 8. Kỹ thuật bypass thường gặp
 
-Flawed file type validation
+### 8.1 Flawed file type validation
 
-Khi submit form thông thường, trình duyệt thường gửi dữ liệu bằng: `Content-Type: application/x-www-form-urlencoded`
+Đây là nhóm lỗi khi server chỉ kiểm tra một thuộc tính dễ giả mạo, đặc biệt là `Content-Type`.
 
-Phù hợp với dữ liệu nhỏ như: username, password, email, địa chỉ
+### 8.2 Path traversal khi lưu file
 
-Khi upload file, đối với dữ liệu nhị phân như: ảnh, pdf, video, file word
+Nếu giá trị tên file hoặc đường dẫn lưu file không được xử lý an toàn, kẻ tấn công có thể ghi file ra ngoài thư mục upload dự kiến.
 
-Trình duyệt sử dụng `Content-Type: multipart/form-data`
+### 8.3 Blacklist không đủ mạnh
 
-multipart/form-data hoạt động như thế nào?
+Chặn một vài extension nguy hiểm không có nghĩa là an toàn. Một số server vẫn thực thi các biến thể khác như `.php5`.
 
-Body của HTTP Request được chia thành nhiều phần, mỗi input trong form sẽ là một part riêng. VD: Image -> Description -> Username
+### 8.4 Tải lên file cấu hình
 
-Ví dụ request: `POST /images HTTP/1.1
-Content-Type: multipart/form-data` gồm:
+Nếu website cho phép upload `.htaccess` hoặc `web.config`, kẻ tấn công có thể thay đổi cách server xử lý file trong thư mục đó.
 
-Part 1: `Content-Disposition:
-name="image"
-filename="example.jpg"
-Content-Type: image/jpeg`
--> Chứa nội dung file ảnh
+Ví dụ với Apache:
 
-Part 2: `Content-Disposition:
-name="description"` -> Chứa mô tả
+```apache
+AddType application/x-httpd-php .abc
+```
 
-Part 3: `Content-Disposition:
-name="username"` -> Chứa username.
+Lúc này file `.abc` có thể bị xử lý như PHP.
 
-Content-Disposition
+### 8.5 Làm rối phần mở rộng
 
-Header này cho server biết:
-- Đây là field nào.
-- Tên file upload.
-- Thuộc input nào.
+Các kỹ thuật phổ biến gồm:
 
-Cách website thường kiểm tra file upload
+- Thay đổi chữ hoa/chữ thường
+- Dùng nhiều extension
+- Thêm dấu chấm hoặc khoảng trắng ở cuối
+- URL encode hoặc double URL encode
+- Chèn `;` hoặc null byte `%00`
+- Dùng Unicode đa byte
+- Tận dụng cơ chế xóa extension lỗi
 
-Một số website chỉ kiểm tra `Content-Type:` nếu thấy `image/jpeg` -> Cho phép upload.
+## 9. Các lab đã làm
 
-Nếu thấy `application/php` -> Từ chối
+### Lab 1: Remote code execution via web shell upload
 
-Lỗ hổng nằm ở đâu?
+![Lab 1](images/image.png)
 
-Nhiều server tin tưởng hoàn toàn giá trị Content-Type do client gửi lên. Trong khi: 
-- Browser gửi giá trị này.
-- Burp Suite có thể sửa giá trị này.
-- Hacker có toàn quyền chỉnh sửa.
+Upload file PHP chứa web shell:
 
-Server cần làm:
-- Kiểm tra phần mở rộng file (extension).
-- Kiểm tra MIME Type thực tế.
-- Kiểm tra magic bytes / file signature.
-- Kiểm tra nội dung file có đúng là ảnh hay không.
-- Đổi tên file khi lưu.
-- Không cho thực thi file upload.
+![Web shell PHP](images/image-1.png)
 
-Lab 2: Web shell upload via Content-Type restriction bypass
+Khi bắt request upload thành công, secret được phản hồi:
 
-![alt text](images/image-4.png)
+![Secret phản hồi](images/image-2.png)
 
-Upload lại file php với nội dung:
+Nộp secret và hoàn thành lab:
 
-![alt text](images/image-1.png)
+![Hoàn thành lab 1](images/image-3.png)
 
-Thông báo `Sorry, file type application/octet-stream is not allowed Only image/jpeg and image/png are allowed Sorry, there was an error uploading your file.`
+### Lab 2: Web shell upload via Content-Type restriction bypass
 
-Bắt request upload ảnh và gửi đến Repeater
+![Lab 2](images/image-4.png)
 
-![alt text](images/image-5.png)
+Ban đầu server từ chối vì sai `Content-Type`:
 
-Sửa lại Content-Type thành image/png
+![Từ chối upload](images/image-5.png)
 
-![alt text](images/image-6.png)
+Sửa `Content-Type` trong request:
 
-Quay lại Proxy/HTTP history và bắt request upload thành công file web shell và đọc được nội dung file `/home/carlos/secret`
+![Sửa Content-Type](images/image-6.png)
 
-![alt text](images/image-7.png)
+Sau đó upload thành công web shell và đọc được `/home/carlos/secret`:
 
-Submit secret thu được và thành công giải được bài lab
+![Đọc secret](images/image-7.png)
 
-![alt text](images/image-8.png)
+Hoàn thành lab:
 
-Ngăn chặn việc thực thi tệp trong các thư mục có thể truy cập của người dùng
+![Hoàn thành lab 2](images/image-8.png)
 
-Ngoài việc ngăn upload các file nguy hiểm, một lớp bảo vệ quan trọng khác là không cho phép server thực thi các file do người dùng upload. 
+### Lab 3: Web shell upload via path traversal
 
-Mục tiêu: Dù hacker upload được file .php, .jsp,... thì file đó cũng không được chạy. 
+![Lab 3](images/image-9.png)
 
-Thông thường server chỉ thực thi các loại script đã được cấu hình rõ ràng.
+Upload file và bắt request sau khi upload thành công:
 
-Nếu một loại file không được phép thực thi, server sẽ:
-- Trả lỗi.
-- Hoặc trả nguyên nội dung file dưới dạng plain text.
+![Request upload](images/image-10.png)
 
-Cấu hình thực thi có thể khác nhau giữa các thư mục
+Sửa đường dẫn để file được lưu thành `/files/a.php`:
 
-Không phải mọi thư mục đều có cấu hình giống nhau. Ví dụ thư mục upload thường:
-- Không cho chạy PHP.
-- Không cho chạy JSP.
-- Chỉ dùng để lưu file người dùng upload.
+![Path traversal](images/image-11.png)
 
-Thư mục ứng dụng: `/var/www/html/
-/admin/
-/cgi-bin/` thường:
-- Cho phép thực thi script.
-- Chứa mã nguồn của website.
+Nộp secret và hoàn thành lab:
 
-Khả năng khai thác
+![Hoàn thành lab 3](images/image-12.png)
 
-Nếu hacker tìm được cách upload file vào một thư mục khác, nơi server được phép thực thi script, thì:
-- Web Shell vẫn có thể chạy.
-- Dẫn đến Remote Code Execution.
+### Lab 4: Web shell upload via extension blacklist bypass
 
-Tip: Trong request multipart/form-data, trường `filename=` không chỉ là tên file hiển thị.
+![Lab 4](images/image-13.png)
 
-Nhiều web server sử dụng giá trị này để xác định:
-- Tên file sẽ được lưu.
-- Vị trí lưu file trên server.
+Upload file text để kiểm tra cơ chế xác thực:
 
-Reverse Proxy và Backend Server
-- Người dùng thường chỉ gửi request đến một domain.
-- Domain này có thể trỏ đến Reverse Proxy.
-- Reverse Proxy sẽ chuyển request đến các backend server phía sau.
-- Mỗi backend server có thể có cấu hình khác nhau.
+![Upload text](images/image-14.png)
 
-Ý nghĩa khi pentest:
-- Cùng một request nhưng các backend khác nhau có thể phản hồi khác nhau.
-- Có thể khai thác sự khác biệt về cấu hình giữa các server.
+Tạo file `.htaccess` với nội dung:
 
-Lab 3*: Web shell upload via path traversal
+```apache
+AddType application/x-httpd-php .abc
+```
 
-![alt text](images/image-9.png)
+![Tạo htaccess](images/image-15.png)
 
-Đăng nhập vào tài khoản wiener, upload file php như 2 bài trên. Bấm `Back to My Account` và bắt request sau khi đã upload file ảnh thành công
+Đổi đuôi file web shell thành `.abc`:
 
-![alt text](images/image-10.png)
+![Đổi extension](images/image-16.png)
 
-Gửi đến Repeater, đưa về file /files/a.php
+Upload thành công và lấy secret:
 
-![alt text](images/image-11.png)
+![Upload thành công](images/image-17.png)
 
-Nộp secret này để giải quyết bài lab
+Hoàn thành lab:
 
-![alt text](images/image-12.png)
+![Hoàn thành lab 4](images/image-18.png)
 
-Insufficient blacklisting of dangerous file types
+### Lab 5: Web shell upload via obfuscated file extension
 
-Website chặn upload các phần mở rộng nguy hiểm bằng danh sách cấm. Ví dụ: .php, .jsp, .asp, .py
+![Lab 5](images/image-19.png)
 
-Vì sao Blacklist không an toàn?
-- Rất khó liệt kê hết tất cả phần mở rộng có thể thực thi mã.
-- Hacker có thể dùng các đuôi thay thế mà server vẫn thực thi.
+Server chỉ cho phép upload file có đuôi hợp lệ như `.jpg` hoặc `.png`.
 
-Ví dụ blacklist chặn .php thì upload .php5 thì vẫn chạy trên một số server
+Ta có thể đổi đuôi `php` sang một dạng obfuscate như `%00.jpg` để bypass bộ lọc trong một số cấu hình cũ:
 
-Ngoài cấu hình toàn cục, nhiều web server cho phép ghi đè cấu hình theo từng thư mục.
+![Đổi đuôi](images/image-20.png)
 
-Lỗ hổng có thể xảy ra
+Upload file thành công và kiểm tra secret:
 
-Thông thường:
-- Không thể truy cập các file cấu hình này qua HTTP
-- Người dùng cũng không được phép upload chúng
+![Upload thành công](images/image-21.png)
 
-Tuy nhiên, nếu website cho phép upload:
-- .htaccess
-- web.config
+Submit secret để solve bài lab:
 
-thì hacker có thể thay đổi cách server xử lý file.
+![Hoàn thành lab 5](images/image-22.png)
 
-VD: Website blacklist: .php -> Không upload được. Nhưng hacker upload `.htaccess` với nội dung `AddType application/x-httpd-php .abc`
+### Lab 6: Remote code execution via polyglot web shell upload
 
-Sau đó upload: shell.abc
+Server kiểm tra nội dung file thay vì chỉ nhìn extension hay `Content-Type`:
 
-Server sẽ hiểu: .abc = PHP và thực thi shell.abc như 1 file php
+![Lab 6](images/image-24.png)
 
-Lab 4: Web shell upload via extension blacklist bypass
+Upload file không hợp lệ sẽ bị từ chối:
 
-![alt text](images/image-13.png)
+![Từ chối upload](images/image-25.png)
 
-Upload file text và xem response ta thấy upload thành công
+Sử dụng `exiftool` để tạo polyglot file từ ảnh `.jpg` và chèn payload PHP vào metadata comment:
 
-![alt text](images/image-14.png)
+![Tạo polyglot](images/image-26.png)
 
-Tiến hành sửa nội dung với tên file là `.htaccess` và nội dung file `AddType application/x-httpd-php .abc`, ý là Hãy xử lý tất cả các file có đuôi .abc như file PHP.
+Upload file polyglot thành công:
 
-Apache có một cơ chế đặc biệt: mỗi khi xử lý một thư mục, nó sẽ tự động tìm một file cấu hình có tên chính xác là .htaccess. Nếu tìm thấy file này, Apache sẽ đọc các cấu hình bên trong và áp dụng chúng cho thư mục đó.
+![Upload polyglot](images/image-27.png)
 
-Khi người dùng truy cập a.abc, Apache sẽ đọc .htaccess trước, sau đó áp dụng các cấu hình trong file này.
+Tìm secret và submit để hoàn thành lab:
 
-![alt text](images/image-15.png)
+![Hoàn thành lab 6](images/image-28.png)
 
-Thực hiện upload file a.php, thực hiện đổi đuôi .php thành .abc
+## 10. Kiểm tra nội dung file
 
-![alt text](images/image-16.png)
+Không tin `Content-Type` trong request.
 
-Mở request này trên trình duyệt sau đó bắt gói tin  upload thành công file `a.abc` thì sexthu được secret
+- Server có thể kiểm tra nội dung thực tế của file để xác định loại file
+- Với ảnh, có thể kiểm tra kích thước hoặc thuộc tính đặc trưng
+- File không khớp với định dạng mong đợi sẽ bị từ chối
 
-![alt text](images/image-17.png)
+### Magic bytes
 
-Submit bài lab sẽ được hoàn thành
+Mỗi định dạng file thường có chuỗi byte đặc trưng ở đầu hoặc cuối file.
 
-![alt text](images/image-18.png)
+- JPEG thường bắt đầu bằng `FF D8 FF`
+- Nếu chữ ký không đúng, server có thể từ chối upload
 
-Làm rối phần mở rộng của tệp
+Kỹ thuật này vẫn có thể bị bypass bằng polyglot file. Công cụ như `ExifTool` có thể nhúng payload vào metadata để tạo file vừa hợp lệ về mặt định dạng, vừa chứa mã độc.
 
-Thay đổi chữ hoa/chữ thường
-- Nếu bộ lọc phân biệt hoa/thường:
-- exploit.pHp → vẫn có thể được server xử lý là .php.
+## 11. Khai thác race condition trong upload file
 
-Dùng nhiều phần mở rộng
-- Thêm nhiều đuôi file để đánh lừa bộ lọc.
-- Ví dụ: exploit.php.jpg
+Framework hiện đại thường an toàn hơn vì:
 
-Thêm ký tự ở cuối
-- Một số server tự bỏ dấu chấm hoặc khoảng trắng cuối tên file.
-- Ví dụ: exploit.php.
+- Upload file vào thư mục tạm
+- Đổi tên ngẫu nhiên
+- Kiểm tra hợp lệ rồi mới chuyển sang thư mục chính
 
-URL encode hoặc double URL encode
-- Mã hóa dấu . hoặc / để bộ lọc không nhận ra, nhưng server sẽ giải mã khi xử lý.
-- Ví dụ: exploit%2Ephp
+Lỗi thường xuất hiện khi lập trình viên tự xử lý upload:
 
-Chèn dấu ; hoặc Null Byte (%00)
-- Khai thác sự khác nhau giữa cách ứng dụng và server xử lý tên file.
-- VD:
-    - exploit.asp;.jpg
-    - exploit.asp%00.jpg
+- File được lưu ngay vào thư mục chính
+- Sau đó mới quét hoặc kiểm tra
+- Nếu không hợp lệ thì mới xóa
 
-Dùng Unicode đa byte
-- Một số ký tự Unicode sau khi chuyển đổi có thể trở thành dấu . hoặc NULL, giúp vượt qua bộ lọc.
+Trong khoảng thời gian rất ngắn trước khi file bị xóa, kẻ tấn công có thể truy cập hoặc kích hoạt file đó.
 
-Bypass cơ chế xóa đuôi file
-- Nếu hệ thống chỉ xóa .php một lần (không đệ quy), có thể chèn đuôi để sau khi xóa vẫn còn .php.
-- VD: exploit.p.phphp -> xóa ".php" -> exploit.p.php
+Race condition thường khó phát hiện bằng black-box testing và dễ bị bỏ sót nếu không xem được mã nguồn hoặc không có dấu hiệu rõ ràng từ hành vi hệ thống.
 
-Lab 5*: Web shell upload via obfuscated file extension
+## 12. Ghi nhớ nhanh
 
-![alt text](images/image-19.png)
-
-Ta thấy thông báo chỉ nhận file có đuôi là jpg hoặc png khi thực hiện upload file php
-
-![alt text](images/image-20.png)
-
-Tiến hành sửa đuôi .php thành %00.jpg
-
-![alt text](images/image-21.png)
-
-Upload file thành công tiến hành xem secret
-
-![alt text](images/image-22.png)
-
-Tiến hành nộp secret để solve bài lab
-
-![alt text](images/image-23.png)
-
-Kiểm tra nội dung file
-
-Không tin Content-Type trong request.
-- Server sẽ kiểm tra nội dung thực tế của file để xác định đúng loại file.
-
-Kiểm tra thuộc tính đặc trưng của file
-- Ví dụ với ảnh: kiểm tra kích thước
-- Nếu upload file PHP → không có kích thước ảnh → từ chối.
-
-Kiểm tra "magic bytes"
-- Mỗi định dạng file thường có chuỗi byte đặc trưng ở đầu hoặc cuối file.
-- VD: JPEG luôn bắt đầu bằng: FF D8 FF
-- Nếu chữ ký không đúng → từ chối upload.
-
-Vẫn có thể bị bypass
-- Dùng công cụ như ExifTool để tạo polyglot file (một file vừa là ảnh hợp lệ, vừa chứa mã độc trong metadata).
-- File vẫn vượt qua kiểm tra nhưng có thể thực thi mã độc nếu server xử lý không an toàn.
-
-Lab 6: Remote code execution via polyglot web shell upload
-
-![alt text](images/image-24.png)
-
-Thực hiện upload 1 file thay vì ảnh, sẽ bị kiểm tra và từ chối
-
-![alt text](images/image-25.png)
-
-Tiến hành sử dụng ảnh .jpg, sử dụng exiftool để tạo polyglot file mục đích tạo file gồm hình ảnh và thêm vào trường comment đoạn mã PHP: `<?php echo 'START ' . file_get_contents('/home/carlos/secret') . ' END'; ?>`
-
-![alt text](images/image-26.png)
-
-Thực hiện upload file polyglot.php thành công 
-
-![alt text](images/image-27.png)
-
-Tiến hành tìm secret và submit để solve bài lab
-
-![alt text](images/image-28.png)
-
-Khai thác Race Condition trong upload file
-
-Framework hiện đại an toàn hơn
-- Upload file vào thư mục tạm (sandbox).
-- Đổi tên ngẫu nhiên.
-- Kiểm tra hợp lệ rồi mới chuyển sang thư mục chính.
-
-Lỗi do lập trình viên tự xử lý upload
-- Tự viết cơ chế upload dễ tạo race condition (lỗi tranh chấp thời gian).
-- Có thể bypass cả các cơ chế kiểm tra mạnh.
-
-Ví dụ điển hình
-- File được lưu ngay vào thư mục chính.
-- Sau đó mới quét virus hoặc kiểm tra.
-- Nếu không hợp lệ mới xóa.
-
-⇒ Trong khoảng thời gian rất ngắn (vài ms), file vẫn tồn tại và có thể bị truy cập/thực thi.
-
-Khó phát hiện
-- Race condition thường rất tinh vi.
-- Khó tìm bằng black-box testing, trừ khi có thể xem hoặc rò rỉ mã nguồn.
-
+- Không tin vào `Content-Type` do client gửi lên
+- Không chỉ dùng blacklist để chặn extension
+- Luôn kiểm tra nội dung file và magic bytes
+- Không cho thực thi file upload trong thư mục public
+- Cẩn thận với path traversal và cấu hình theo thư mục
+- Khi pentest, luôn thử khác biệt giữa frontend, reverse proxy và backend
