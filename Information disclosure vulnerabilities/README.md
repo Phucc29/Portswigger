@@ -55,47 +55,47 @@ Tiết lộ công nghệ
 
 Lab 1: Information disclosure in error messages
 
-![alt text](image.png)
+![alt text](images/image.png)
 
 Bắt request xem 1 sản phẩm rồi gửi đến Repeater và sửa lại tham số `productId` mục đích để báo lỗi
 
-![alt text](image-1.png)
+![alt text](images/image-1.png)
 
 Thấy phiên bản của apache submit để solve bài lab
 
-![alt text](image-2.png)
+![alt text](images/image-2.png)
 
 Lab 2: Information disclosure on debug page
 
-![alt text](image-3.png)
+![alt text](images/image-3.png)
 
 Kiểm tra response
 
-![alt text](image-4.png)
+![alt text](images/image-4.png)
 
 Truy cập vào url debug
 
-![alt text](image-5.png)
+![alt text](images/image-5.png)
 
 Submit secret_key
 
-![alt text](image-6.png)
+![alt text](images/image-6.png)
 
 Lab 3: Source code disclosure via backup files
 
-![alt text](image-7.png)
+![alt text](images/image-7.png)
 
 Truy cập vào file robots.txt lấy được endpoint `/backup`, truy cập vào trang backup
 
-![alt text](image-8.png)
+![alt text](images/image-8.png)
 
 Truy cập vào file và tìm mật khẩu:
 
-![alt text](image-9.png)
+![alt text](images/image-9.png)
 
 Submit mật khẩu để solve bài lab
 
-![alt text](image-10.png)
+![alt text](images/image-10.png)
 
 Information Disclosure do cấu hình không an toàn
 - Cấu hình sai là nguyên nhân phổ biến gây Information Disclosure.
@@ -108,4 +108,47 @@ VD: HTTP TRACE
 
 Lab 4: Authentication bypass via information disclosure
 
-![alt text](image-11.png)
+![alt text](images/image-11.png)
+
+Thực hiện truy cập vào api `/admin`
+
+![alt text](images/image-12.png)
+
+Đổi phương thức GET thành TRACE để chẩn đoán và gỡ lỗi. Nó yêu cầu server phản hồi lại chính xác request mà client đã gửi, giúp kiểm tra request đã bị thay đổi như thế nào trên đường đi.
+
+![alt text](images/image-13.png)
+
+Sửa lại request
+
+![alt text](images/image-14.png)
+
+Lỗi Backend không kiểm tra header này do ai gửi, nó chỉ đọc request.headers["X-Custom-IP-Authorization"]
+
+![alt text](images/image-15.png)
+
+Thực hiện xóa carlos để solve được bài lab, thêm header `X-Custom-Ip-Authorization: 127.0.0.1` vào request xóa carlos, sau đó bài lab được hoàn thành
+
+![alt text](images/image-16.png)
+![alt text](images/image-17.png)
+
+Lab 5: Information disclosure in version control history
+
+![alt text](images/image-18.png)
+
+Truy cập vào thư mu7jc `/.git` sau đó tải về
+
+![alt text](images/image-19.png)
+
+Truy cập vào thư mục `logs` sau đó kiểm tra thấy có log gỡ mật khẩu
+
+![alt text](images/mage-20.png)
+
+Thực hiện show lần commit này, ta tìm được mật khẩu admin
+
+![alt text](images/image-21.png)
+
+Vào trang admin, xóa carlos để solve bài lab
+
+![alt text](images/image-22.png)
+
+
