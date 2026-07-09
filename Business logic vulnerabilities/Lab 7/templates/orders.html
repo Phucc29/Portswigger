@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Orders</h2>
+
+{% for order in orders %}
+
+<hr>
+
+<p>User: {{ order["user"] }}</p>
+
+<ul>
+{% for item, qty in order["items"].items() %}
+    <li>{{ item }} × {{ qty }}</li>
+{% endfor %}
+</ul>
+
+<p>Total: {{ order["total"] }}</p>
+
+{% endfor %}
+
+</body>
+</html>

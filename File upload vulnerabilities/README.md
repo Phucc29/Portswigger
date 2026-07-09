@@ -1,7 +1,5 @@
 # File Upload Vulnerabilities
 
-Tài liệu này tổng hợp ghi chú về lỗ hổng tải tệp lên, cách web server xử lý file, các kỹ thuật bypass phổ biến và 5 lab PortSwigger liên quan.
-
 ## 1. File Upload Vulnerabilities là gì?
 
 Lỗ hổng file upload xảy ra khi máy chủ cho phép người dùng tải tệp lên nhưng không kiểm tra đủ chặt chẽ hoặc kiểm tra sai cách.

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini Store</title>
+
+    <style>
+        body{
+            font-family: Arial, sans-serif;
+            width:900px;
+            margin:auto;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+            margin-top:15px;
+        }
+
+        table,th,td{
+            border:1px solid #ccc;
+        }
+
+        th,td{
+            padding:10px;
+            text-align:center;
+        }
+
+        .product{
+            border:1px solid #ddd;
+            padding:10px;
+            margin:10px 0;
+        }
+
+        form{
+            display:inline;
+        }
+
+        button{
+            padding:5px 10px;
+            cursor:pointer;
+        }
+
+        .top{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+    </style>
+
+</head>
+<body>
+
+<div class="top">
+
+    <h2>🛒 Mini Store</h2>
+
+    <div>
+        <strong>Balance:</strong>
+        {{ balance }} $
+    </div>
+
+</div>
+
+<hr>
+
+<h3>Products</h3>
+
+{% for p in products %}
+
+<div class="product">
+
+    <strong>{{ p }}</strong>
+
+    <br>
+
+    Price: {{ products[p] }} $
+
+    <br><br>
+
+    <form action="/cart/add" method="post">
+
+        <input
+            type="hidden"
+            name="item"
+            value="{{ p }}">
+
+        <button type="submit">
+            Add to Cart
+        </button>
+
+    </form>
+
+</div>
+
+{% endfor %}
+
+<hr>
+
+<h3>Your Shopping Cart</h3>
+
+{% if cart %}
+
+<table>
+
+<tr>
+
+<th>Product</th>
+
+<th>Price</th>
+
+<th>Quantity</th>
+
+<th>Subtotal</th>
+
+<th>Action</th>
+
+</tr>
+
+{% for item, qty in cart.items() %}
+
+<tr>
+
+<td>{{ item }}</td>
+
+<td>{{ products[item] }} $</td>
+
+<td>{{ qty }}</td>
+
+<td>{{ products[item] * qty }} $</td>
+
+<td>
+
+<form action="/cart/increase" method="post">
+
+<input
+type="hidden"
+name="item"
+value="{{ item }}">
+
+<button>+</button>
+
+</form>
+
+<form action="/cart/decrease" method="post">
+
+<input
+type="hidden"
+name="item"
+value="{{ item }}">
+
+<button>-</button>
+
+</form>
+
+<form action="/cart/remove" method="post">
+
+<input
+type="hidden"
+name="item"
+value="{{ item }}">
+
+<button>Remove</button>
+
+</form>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<h3>Total: {{ total }} $</h3>
+
+<form action="/cart/checkout" method="post">
+
+<button type="submit">
+
+Checkout
+
+</button>
+
+</form>
+
+{% else %}
+
+<p>Your cart is empty.</p>
+
+{% endif %}
+
+<hr>
+
+<a href="/orders">
+View Orders
+</a>
+
+&nbsp;&nbsp;
+
+<a href="/logout">
+Logout
+</a>
+
+</body>
+</html>
