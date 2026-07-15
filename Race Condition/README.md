@@ -59,23 +59,23 @@ Kỹ thuật single-packet attack cho phép loại bỏ gần như hoàn toàn �
 
 Lab 1: Limit overrun race conditions
 
-![alt text](image.png)
+![alt text](images/image.png)
 
 Đăng nhập vào tài khoản wiener, sau đó thực hiện thêm gift code ta thấy api áp gift code là `/cart/coupon`, đoán race condition diễn ra ở đây. Gửi nhiều request này tới Repeater
 
-![alt text](image-1.png)
+![alt text](images/image-1.png)
 
 Sử dụng Custom actions để gửi nhiều request đi cùng lúc. Sử dụng trigger race condition
 
-![alt text](image-2.png)
+![alt text](images/image-2.png)
 
 Sau đó play và ta thành công sử dụng nhiều mã giảm giá
 
-![alt text](image-3.png)
+![alt text](images/image-3.png)
 
 Tiến hành play trigger race condition rồi lại gỡ mã giảm giá cho đến khi mã giảm giá giảm số lượng tiền xuống mức mua được
 
-![alt text](image-4.png)
+![alt text](images/image-4.png)
 
 ### Phát hiện và khai thác các race condition vượt quá giới hạn bằng Turbo Intruder
 
@@ -113,19 +113,19 @@ def queueRequests(target, wordlists):
 
 Lab 2: Bypassing rate limits via race conditions
 
-![alt text](image-5.png)
+![alt text](images/image-5.png)
 
 Từ đề bài ta đoán lỗ hổng nằm ở mật khẩu. Đăng nhập bằng carlos với mật khẩu sai và gửi tới Burp Turbo Intruder
 
-![alt text](image-6.png)
+![alt text](images/image-6.png)
 
 Đổi nội dung payload và copy list mật khẩu sau đó bấm attack
 
-![alt text](image-7.png)
+![alt text](images/image-7.png)
 
 Ta thấy có payload `mustang` với status là 302 ta đoán đây là mật khẩu. Thử đăng nhập để kiểm tra.
 
-![alt text](image-8.png)
+![alt text](images/image-8.png)
 
 ### Phương pháp
 
@@ -174,3 +174,144 @@ Một biến thể của lỗ hổng này có thể xảy ra khi việc xác th�
 Trong trường hợp này, bạn có thể thêm nhiều sản phẩm hơn vào giỏ hàng trong khoảng thời gian race window — tức là khoảng thời gian sau khi hệ thống đã xác thực việc thanh toán nhưng trước khi đơn hàng được xác nhận hoàn toàn.
 
 #### Căn chỉnh các race window giữa nhiều endpoint
+
+Khi kiểm thử điều kiện race condition giữa nhiều endpoint, có thể gặp khó khăn trong việc căn chỉnh các "cửa sổ race" của từng request, ngay cả khi gửi tất cả chúng đúng cùng một thời điểm bằng kỹ thuật single-packet.
+
+Vấn đề phổ biến này chủ yếu xuất phát từ hai nguyên nhân sau:
+- Độ trễ do kiến trúc mạng gây ra – Ví dụ, có thể xuất hiện độ trễ mỗi khi máy chủ front-end thiết lập một kết nối mới đến máy chủ back-end. Giao thức được sử dụng cũng có thể ảnh hưởng rất lớn đến độ trễ này.
+- Độ trễ do quá trình xử lý riêng của từng endpoint gây ra – Mỗi endpoint vốn có thời gian xử lý khác nhau, đôi khi chênh lệch đáng kể, tùy thuộc vào các thao tác mà endpoint đó kích hoạt.
+
+##### Làm nóng kết nối
+
+Độ trễ khi thiết lập kết nối tới back-end thường không gây ảnh hưởng đến các cuộc tấn công race condition, vì chúng thường làm chậm tất cả các request song song một cách như nhau, nên các request vẫn được đồng bộ với nhau.
+
+Điều quan trọng là phải phân biệt những độ trễ này với các độ trễ do quá trình xử lý riêng của từng endpoint gây ra.
+
+Một cách để làm điều đó là "làm nóng" kết nối bằng cách gửi một hoặc nhiều request không quan trọng, rồi quan sát xem liệu điều này có làm cho thời gian xử lý của các request còn lại trở nên ổn định hơn hay không.
+
+Trong Burp Repeater, có thể thử:
+- Thêm một request GET đến trang chủ vào đầu tab group.
+- Sau đó sử dụng tùy chọn Send group in sequence (single connection) để gửi toàn bộ nhóm request theo thứ tự trên cùng một kết nối.
+
+Nếu request đầu tiên vẫn có thời gian xử lý lâu hơn, nhưng các request còn lại đều được xử lý trong một khoảng thời gian rất ngắn, thì có thể bỏ qua độ trễ có vẻ như tồn tại đó, vì nó chỉ là chi phí ban đầu của việc thiết lập kết nối, và tiếp tục kiểm thử như bình thường.
+
+Lab 3*: Multi-endpoint race conditions
+
+![alt text](images/image-9.png)
+
+Thực hiện luồng mua gift card, ta bắt 2 request thêm sản phẩm vào giỏ và thực hiện check out.
+
+Sửa request thêm gift card thành id của jacket
+
+![alt text](images/image-10.png)
+
+Gửi request check out tới Repeater, đồng thời gửi request thêm gift card đến Repeater. Nhóm 3 request này thành 1 nhóm rồi chọn `Send group in parellel (single-packet attack)`. Mục đích là để hai request đến server gần như cùng lúc nhất có thể.
+
+![alt text](images/image-11.png)
+
+Lúc này bài lab được hoàn thành
+
+![alt text](images/image-12.png)
+
+### Race condition trên một endpoint
+
+Việc gửi nhiều request song song với các giá trị khác nhau đến cùng một endpoint đôi khi có thể kích hoạt những lỗ hổng race condition rất nghiêm trọng.
+
+Hãy xem xét một cơ chế đặt lại mật khẩu, trong đó ID người dùng và mã token đặt lại mật khẩu được lưu trong session của người dùng.
+
+Trong trường hợp này, nếu gửi hai request đặt lại mật khẩu đồng thời từ cùng một session, nhưng với hai username khác nhau, thì có thể xảy ra va chạm
+
+Sau khi tất cả các thao tác hoàn tất, trạng thái cuối cùng có thể là:
+- session['reset-user'] = victim
+- session['reset-token'] = 1234
+
+Lúc này, session đang chứa ID của nạn nhân, nhưng token đặt lại mật khẩu hợp lệ lại được gửi đến kẻ tấn công
+
+Các chức năng xác nhận địa chỉ email, hoặc nói chung là mọi thao tác dựa trên email, thường là mục tiêu rất phù hợp để khai thác single-endpoint race condition.
+
+Nguyên nhân là do email thường được gửi trong một luồng nền sau khi server đã trả HTTP response cho client, khiến khả năng xảy ra race condition cao hơn.
+
+Lab 4: Single-endpoint race conditions
+
+![alt text](images/image-13.png)
+
+Đăng nhập vào tài khoản wiener, thực hiện luồng update email. Sau đó bắt các request `POST /my-account/change-email` gửi đến Repeater. Tạo 2 tab với request trên trong Repeater. Với tab 1 nội dung email đổi thành `carlos@ginandjuice.shop` và tab 2 email giữ nguyên. Chọn gửi 2 request cùng lúc
+
+![alt text](images/image-14.png)
+
+Truy cập vào email clinet ta thấy đường link cập nhật email carlos đã hiện, bấm xác nhận
+
+![alt text](images/image-15.png)
+
+Sau khi xác nhận, tài khoản wiener đã truy cập thành công vào trang admin, tiến hành xóa carlos để solve bài lab
+
+![alt text](images/image-16.png)
+
+### Cơ chế khóa dựa trên session
+
+Một số framework cố gắng ngăn chặn việc dữ liệu vô tình bị hỏng bằng cách sử dụng một dạng khóa request. Ví dụ, module xử lý session gốc của PHP chỉ xử lý một request cho mỗi session tại một thời điểm.
+
+Điều cực kỳ quan trọng là phải nhận ra loại hành vi này, vì nếu không, nó có thể che giấu những lỗ hổng vốn rất dễ khai thác.
+
+Nếu nhận thấy rằng tất cả các request của mình đều đang được xử lý tuần tự, hãy thử gửi mỗi request bằng một session token khác nhau.
+
+### Race condition do đối tượng được tạo chưa hoàn chỉnh
+
+Nhiều ứng dụng tạo đối tượng qua nhiều bước, điều này có thể tạo ra một trạng thái trung gian tạm thời, trong đó đối tượng có thể bị khai thác.
+
+Ví dụ, khi đăng ký một người dùng mới, ứng dụng có thể tạo người dùng trong cơ sở dữ liệu và thiết lập API key của họ bằng hai câu lệnh SQL riêng biệt. Điều này tạo ra một khoảng thời gian rất ngắn mà trong đó người dùng đã tồn tại, nhưng API key của họ vẫn chưa được khởi tạo.
+
+Kiểu hành vi này tạo điều kiện cho các cuộc tấn công, trong đó chèn một giá trị đầu vào trả về một giá trị khớp với giá trị chưa được khởi tạo trong cơ sở dữ liệu, chẳng hạn như chuỗi rỗng ("") hoặc null trong JSON, và giá trị này được đem ra so sánh như một phần của cơ chế kiểm soát bảo mật.
+
+Các framework thường cho phép bạn truyền mảng và các cấu trúc dữ liệu không phải chuỗi khác bằng cú pháp không chuẩn. Ví dụ, trong PHP:
+- param[]=foo tương đương với param = ['foo']
+- param[]=foo&param[]=bar tương đương với param = ['foo', 'bar']
+- param[] tương đương với param = []
+
+Ruby on Rails cũng cho phép làm điều tương tự bằng cách cung cấp một query parameter hoặc POST parameter có key nhưng không có value. Nói cách khác, param[key] sẽ tạo ra đối tượng phía server như sau:
+- params = {"param"=>{"key"=>nil}}
+
+Trong ví dụ ở trên, điều này có nghĩa là trong khoảng thời gian race window, bạn có khả năng thực hiện các request API đã được xác thực như sau:
+```
+GET /api/user/info?user=victim&api-key[]= HTTP/2
+Host: vulnerable-website.com
+```
+
+Lưu ý: Cũng có thể tạo ra các partial construction collision tương tự với mật khẩu thay vì API key. Tuy nhiên, vì mật khẩu được băm, nên cần chèn một giá trị khiến giá trị băm khớp với giá trị chưa được khởi tạo.
+
+### Các cuộc tấn công nhạy cảm với thời gian
+
+Đôi khi bạn không tìm thấy race condition, nhưng các kỹ thuật gửi request với thời điểm chính xác vẫn có thể giúp phát hiện sự tồn tại của những lỗ hổng khác.
+
+Một ví dụ điển hình là khi dấu thời gian có độ phân giải cao được sử dụng thay cho các chuỗi ngẫu nhiên an toàn về mặt mật mã để tạo security token.
+
+Hãy xem xét một token đặt lại mật khẩu chỉ được tạo ngẫu nhiên dựa trên timestamp. Trong trường hợp này, có thể sẽ kích hoạt hai yêu cầu đặt lại mật khẩu cho hai người dùng khác nhau, và cả hai đều nhận được cùng một token.
+
+Tất cả những gì cần làm là căn thời điểm gửi các request sao cho chúng tạo ra cùng một timestamp.
+
+Lab 5: Exploiting time-sensitive vulnerabilities
+
+![alt text](images/image-17.png)
+
+Thực hiện chức năng đổi mật khẩu cho account wiener, gửi các request `GET /forgot-password`, `POST /forgot-password` và request đổi mật `GET /forgot-password?user=wiener&token=8b8085014537b1f0fe6517f48289eba79f38e686` đến Repeater. 
+
+Gửi request `GET /forgot-password` lấy csrf và phpsessionid
+
+![alt text](images/image-18.png)
+
+Tạo thêm 1 tab trong Repeater của request `POST /forgot-password` sau đó nhóm 2 tab với nhau, ta thấy đồng thời 2 request yêu cầu đổi mật khẩu được gửi đến cùng lúc
+
+![alt text](images/image-19.png)
+![alt text](images/image-20.png)
+
+Trên 1 tab trong group đó sửa thành carlos và gửi 
+
+![alt text](images/image-21.png)
+
+Lấy token ở phần cuối URL và thay vào vị trí tại request `POST /forgot-password?user=carlos&token=8b8085014537b1f0fe6517f48289eba79f38e686`. CSRF và phpsessionid lấy trong request `POST /forgot-password` với username là carlos , username thay thành carlos
+
+![alt text](images/image-22.png)
+
+Tức là ta đã đổi thành công mật khẩu của carlos, đăng nhập và tiến hành xóa carlos
+
+![alt text](images/image-23.png)
