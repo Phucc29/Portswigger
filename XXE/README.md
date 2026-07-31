@@ -42,11 +42,11 @@ bin:x:2:2:bin:/bin:/usr/sbin/nologin
 
 Lab 1: Exploiting XXE using external entities to retrieve files
 
-![alt text](image.png)
+![alt text](images/image.png)
 
 Thực hiện bắt request check stock, gửi đến repeater rồi thay đổi nội dung file xml
 
-![alt text](image-1.png)
+![alt text](images/image-1.png)
 
 Dòng <!ENTITY xxe SYSTEM "file:///etc/passwd"> khai báo một external entity tên là xxe, với giá trị được lấy từ tệp /etc/passwd trên máy chủ. Tuy nhiên, việc khai báo này chỉ tạo ra entity, chứ chưa sử dụng nó. Để parser thay thế entity bằng nội dung thực tế của tệp, ta phải tham chiếu đến nó ở một vị trí trong tài liệu XML bằng cú pháp `&xxe;`. 
 
@@ -54,7 +54,7 @@ Khi parser đọc XML, nó sẽ thấy `&xxe;`, tra cứu trong phần DOCTYPE �
 
 Sau đó ta thu được nội dung file /etc/passwd và solve được bài lab.
 
-![alt text](image-2.png)
+![alt text](images/image-2.png)
 
 Một backend dễ bị XXE thường có hai đặc điểm:
 - Nhận dữ liệu XML từ người dùng.
@@ -120,18 +120,18 @@ Trong ví dụ XXE sau đây, thực thể ngoài sẽ khiến máy chủ thực
 
 Lab 2: Exploiting XXE to perform SSRF attacks
 
-![alt text](image-3.png)
+![alt text](images/image-3.png)
 
 Gửi request check stock sang repeater 
 
-![alt text](image-4.png)
+![alt text](images/image-4.png)
 
-![alt text](image-5.png)
+![alt text](images/image-5.png)
 
 Ta thấy response trả về nội dung là invalid product ID: latest, ta cứ thêm phần sau dấu `:` vào sau endpoint `http://169.254.169.254/` cho đếm khi thu thập được secret access key
 
-![alt text](image-6.png)
-![alt text](image-7.png)
+![alt text](images/image-6.png)
+![alt text](images/image-7.png)
 
 ## Lỗ hổng Blind XXE
 
@@ -149,19 +149,19 @@ Cuộc tấn công XXE này khiến máy chủ thực hiện một yêu cầu HT
 
 Lab 3: Blind XXE with out-of-band interaction
 
-![alt text](image-8.png)
+![alt text](images/image-8.png)
 
 Gửi request check stock sang Repeater
 
-![alt text](image-9.png)
+![alt text](images/image-9.png)
 
 Kiểm tra bên collaborator thì thấy đã nhận được các request được gửi tới
 
-![alt text](image-10.png)
+![alt text](images/image-10.png)
 
 Qua đó bài lab được giải quyết
 
-![alt text](image-11.png)
+![alt text](images/image-11.png)
 
 Đôi khi, các cuộc tấn công XXE sử dụng thực thể thông thường (regular entities) bị chặn do một số cơ chế kiểm tra đầu vào của ứng dụng hoặc do việc tăng cường bảo mật của bộ phân tích XML đang được sử dụng. Trong tình huống này, có thể sử dụng thực thể tham số XML (XML parameter entities) thay thế. Thực thể tham số XML là một loại thực thể XML đặc biệt chỉ có thể được tham chiếu ở những vị trí khác bên trong DTD. Đối với mục đích hiện tại, chỉ cần biết hai điều:
 - Thứ nhất, khai báo của một thực thể tham số XML bao gồm ký tự phần trăm (%) đứng trước tên thực thể: `<!ENTITY % myparameterentity "my parameter entity value" >`
@@ -173,20 +173,20 @@ Payload XXE này khai báo một thực thể tham số XML có tên là xxe, sa
 
 Lab 4: Blind XXE with out-of-band interaction via XML parameter entities
 
-![alt text](image-12.png)
+![alt text](images/image-12.png)
 
 Gửi request check stock đến tab repeater sau đó thử payload xxe entity bình thường
 
-![alt text](image-13.png)
+![alt text](images/image-13.png)
 
 Cần khai báo ký tự %  trước xxe
 
-![alt text](image-14.png)
+![alt text](images/image-14.png)
 
 Sang collaborator kiểm tra xem response có được trả về không
 
-![alt text](image-15.png)
-![alt text](image-16.png)
+![alt text](images/image-15.png)
+![alt text](images/image-16.png)
 
 Việc phát hiện một lỗ hổng Blind XXE bằng các kỹ thuật out-of-band (OAST) là một chuyện, nhưng điều đó chưa thực sự chứng minh được cách lỗ hổng có thể bị khai thác. Điều mà kẻ tấn công thực sự muốn đạt được là đánh cắp dữ liệu nhạy cảm.
 
@@ -222,7 +222,7 @@ Sau đó, các bước được định nghĩa trong DTD độc hại sẽ đư�
 
 Lab 5: Exploiting blind XXE to exfiltrate data using a malicious external DTD
 
-![alt text](image-17.png)
+![alt text](images/image-17.png)
 
 Gửi request check stock sang Repeater, sau đó tạo file DTD và chèn nội dung vào body
 
@@ -235,19 +235,19 @@ Gửi request check stock sang Repeater, sau đó tạo file DTD và chèn nội
 
 Sau khi lưu file này ta sẽ có đường dẫn file DTD này `https://exploit-0aa5001b03cde23083bff4e701ba006d.exploit-server.net/malicious.dtd`
 
-![alt text](image-18.png)
+![alt text](images/image-18.png)
 
 Chèn payload XXE sau vào request check stock
 
-![alt text](image-19.png)
+![alt text](images/image-19.png)
 
 Kiểm tra Burp collaborator 
 
-![alt text](image-20.png)
+![alt text](images/image-20.png)
 
 Submit hostname và solve bài lab
 
-![alt text](image-21.png)
+![alt text](images/image-21.png)
 
 Một cách tiếp cận khác để khai thác Blind XXE là kích hoạt một lỗi phân tích XML sao cho thông báo lỗi chứa dữ liệu nhạy cảm mà hacker muốn lấy. Cách này sẽ hiệu quả nếu ứng dụng trả về thông báo lỗi phát sinh trong phản hồi.
 
@@ -277,7 +277,7 @@ bin:x:2:2:bin:/bin:/usr/sbin/nologin
 
 Lab 6: Exploiting blind XXE to retrieve data via error messages
 
-![alt text](image-22.png)
+![alt text](images/image-22.png)
 
 Tạo file malicious.dtd với nội dung:
 ```
@@ -289,8 +289,8 @@ Tạo file malicious.dtd với nội dung:
 
 Sau đó copy đường dẫn của file này và chèn vào payload phần xml  trong request check stock
 
-![alt text](image-23.png)
-![alt text](image-24.png)
+![alt text](images/image-23.png)
+![alt text](images/image-24.png)
 
 ## Tìm bề mặt tấn công ẩn cho việc chèn XXE
 
@@ -311,15 +311,15 @@ Trong tình huống này, không thể thực hiện một cuộc tấn công XX
 
 Lab 7: Exploiting XInclude to retrieve files
 
-![alt text](image-25.png)
+![alt text](images/image-25.png)
 
 Bắt request check stock và gửi đến Repeater, sau đó chèn payload vào vị trí của productId:
 ```
 <foo xmlns:xi="http://www.w3.org/2001/XInclude">
 <xi:include parse="text" href="file:///etc/passwd"/></foo>
 ```
-![alt text](image-26.png)
-![alt text](image-27.png)
+![alt text](images/image-26.png)
+![alt text](images/image-27.png)
 
 Ta lấy được nội dung file /etc/passwd. Backend sẽ chạy như sau:
 
@@ -382,20 +382,20 @@ Ví dụ, một ứng dụng có thể cho phép người dùng tải lên các 
 
 Lab 8: Exploiting XXE via image file upload
 
-![alt text](image-28.png)
+![alt text](images/image-28.png)
 
 Tiến hành view post sau đó tiến hành gửi comment sau đó bắt request này gửi sang Repeater
 
-![alt text](image-29.png)
+![alt text](images/image-29.png)
 
 Thay đổi nội dung thành nội dung xml, sau đó gửi lại
 
-![alt text](image-30.png)
+![alt text](images/image-30.png)
 
 Mở avatar được upload thành công để submit
 
-![alt text](image-31.png)
-![alt text](image-32.png)
+![alt text](images/image-31.png)
+![alt text](images/image-32.png)
 
 Backend xử lý:
 Đọc file svg -> Phân tích XML -> Hiểu cấu trúc SVG -> Vẽ lại thành ảnh
