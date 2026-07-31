@@ -295,3 +295,119 @@ Sau đó copy đường dẫn của file này và chèn vào payload phần xml 
 ## Tìm bề mặt tấn công ẩn cho việc chèn XXE
 
 Bề mặt tấn công của các lỗ hổng chèn XXE trong nhiều trường hợp là rõ ràng, vì lưu lượng HTTP thông thường của ứng dụng bao gồm các yêu cầu chứa dữ liệu ở định dạng XML. Trong những trường hợp khác, bề mặt tấn công ít dễ nhận thấy hơn. Tuy nhiên, nếu tìm đúng chỗ, sẽ phát hiện bề mặt tấn công XXE trong những yêu cầu không chứa bất kỳ dữ liệu XML nào.
+
+### Tấn công XInclude
+
+Một số ứng dụng nhận dữ liệu do client gửi lên, nhúng dữ liệu đó vào một tài liệu XML ở phía máy chủ, sau đó phân tích tài liệu đó. Một ví dụ của trường hợp này xảy ra khi dữ liệu do client gửi được đặt vào một yêu cầu SOAP ở phía backend, sau đó yêu cầu này được dịch vụ SOAP ở backend xử lý.
+
+Trong tình huống này, không thể thực hiện một cuộc tấn công XXE cổ điển, bởi vì mình không kiểm soát toàn bộ tài liệu XML, nên không thể định nghĩa hoặc sửa đổi phần tử DOCTYPE. Tuy nhiên, ta có thể sử dụng XInclude thay thế. XInclude là một phần của đặc tả XML, cho phép một tài liệu XML được xây dựng từ các tài liệu con. Mình có thể đặt một cuộc tấn công XInclude vào bên trong bất kỳ giá trị dữ liệu nào trong một tài liệu XML, vì vậy cuộc tấn công này có thể được thực hiện trong những tình huống mà ta chỉ kiểm soát được một mục dữ liệu duy nhất được đặt vào một tài liệu XML ở phía máy chủ.
+
+Để thực hiện một cuộc tấn công XInclude, ta cần tham chiếu đến namespace của XInclude và chỉ định đường dẫn đến tệp mà muốn đưa vào. Ví dụ:
+
+```
+<foo xmlns:xi="http://www.w3.org/2001/XInclude">
+<xi:include parse="text" href="file:///etc/passwd"/></foo>
+```
+
+Lab 7: Exploiting XInclude to retrieve files
+
+![alt text](image-25.png)
+
+Bắt request check stock và gửi đến Repeater, sau đó chèn payload vào vị trí của productId:
+```
+<foo xmlns:xi="http://www.w3.org/2001/XInclude">
+<xi:include parse="text" href="file:///etc/passwd"/></foo>
+```
+![alt text](image-26.png)
+![alt text](image-27.png)
+
+Ta lấy được nội dung file /etc/passwd. Backend sẽ chạy như sau:
+
+Backend không parse dữ liệu người dùng ngay. Khi người dùng gửi `productId=1
+storeId=2`. Backend sẽ lấy dữ liệu này ghép vào một tài liệu XML.
+```
+<stockCheck>
+    <productId>1</productId>
+    <storeId>2</storeId>
+</stockCheck>
+```
+Sau đó:
+```
+XML Parser
+        ↓
+Parse XML
+```
+
+Payload không được parse riêng, mà được parse sau khi đã nằm trong XML do backend tạo. Ta chỉ điều khiển được giá trị nhập vào của trường productId còn lại do backend tạo. Đặc biệt không thể thêm `<!DOCTYPE ...>` nên XXE truyền thống không dùng được.
+
+Backend ghép chuỗi XML trước rồi mới parse. Ví dụ:
+
+```
+xml =
+"<stockCheck>" +
+"<productId>" + productId + "</productId>" +
+"</stockCheck>";
+```
+
+Nếu nhập `<foo>Hello</foo>`, XML thành:
+
+```
+<stockCheck>
+<productId>
+<foo>Hello</foo>
+</productId>
+</stockCheck>
+```
+
+Parser sẽ coi đây là XML hợp lệ. Sau đó Parser đọc `<xi:include` thì thấy `xmlns:xi="http://www.w3.org/2001/XInclude"` biết đây là XInclude nên đọc `href="file:///etc/passwd"` -> Mở file `/etc/passwd` -> Lấy nội dung -> Thay luôn `<xi:include .../>` bằng nội dung file /etc/passwd. Ban đầu:
+```
+<foo>
+<xi:include .../>
+</foo>
+```
+
+Parser biến thành:
+```
+<foo>
+root:x:0:0:...
+daemon:x:...
+</foo>
+```
+
+### Các cuộc tấn công XXE thông qua việc tải tệp lên
+
+Một số ứng dụng cho phép người dùng tải tệp lên, sau đó các tệp này được xử lý ở phía máy chủ. Một số định dạng tệp phổ biến sử dụng XML hoặc chứa các thành phần con được viết bằng XML. Ví dụ về các định dạng dựa trên XML là các định dạng tài liệu văn phòng như DOCX và định dạng hình ảnh như SVG.
+
+Ví dụ, một ứng dụng có thể cho phép người dùng tải lên các hình ảnh, sau đó xử lý hoặc kiểm tra tính hợp lệ của các hình ảnh này trên máy chủ sau khi chúng được tải lên. Mặc dù ứng dụng mong đợi nhận các định dạng như PNG hoặc JPEG, thư viện xử lý hình ảnh mà ứng dụng đang sử dụng có thể cũng hỗ trợ các hình ảnh SVG. Vì định dạng SVG sử dụng XML, nên kẻ tấn công có thể gửi lên một tệp SVG độc hại, từ đó tiếp cận một bề mặt tấn công ẩn đối với các lỗ hổng XXE.
+
+Lab 8: Exploiting XXE via image file upload
+
+![alt text](image-28.png)
+
+Tiến hành view post sau đó tiến hành gửi comment sau đó bắt request này gửi sang Repeater
+
+![alt text](image-29.png)
+
+Thay đổi nội dung thành nội dung xml, sau đó gửi lại
+
+![alt text](image-30.png)
+
+Mở avatar được upload thành công để submit
+
+![alt text](image-31.png)
+![alt text](image-32.png)
+
+Backend xử lý:
+Đọc file svg -> Phân tích XML -> Hiểu cấu trúc SVG -> Vẽ lại thành ảnh
+
+Sau khi parser đọc xong, Apache Batik mới biết:
+- Ảnh rộng bao nhiêu
+- Có những hình gì
+- Có đoạn text nào cần bảo vệ
+- Màu sắc thế nào
+
+Rồi render thành ảnh cuối. Tại sao lại đọc được /etc/hostname? Nếu trong quá trình parse XML, đoạn text đó được thay thế bằng nội dung của một file trên server (do parser xử lý các entity), thì Apache Batik không biết đây là dữ liệu từ fil. Nó sẽ vẽ đúng chuỗi đó lên ảnh.
+
+Điều cần nhớ svg là một tài liệu XML. Apache Batik: là thư viện chuyên đọc SVG, muốn đọc svg phải parse XML
+
+XXE xảy ra đúng lúc parser đọc nội dung SVG. Sau khi parser xong Apache Batik chỉ đơn giản vẽ những gì parser trả về.
