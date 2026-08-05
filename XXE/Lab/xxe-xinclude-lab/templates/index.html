@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Check Stock - XInclude Lab (Windows)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .container { display: flex; gap: 20px; }
+    .card { border: 1px solid #ccc; padding: 20px; width: 220px; border-radius: 8px; }
+    button { padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    #result { margin-top: 20px; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; white-space: pre-wrap; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+  <h2>Product List (PostgreSQL)</h2>
+  
+  <div class="container">
+    {% for product in products %}
+    <div class="card">
+      <h3>{{ product[1] }}</h3>
+      <p>Product ID: {{ product[0] }}</p>
+      <button onclick="checkStock({{ product[0] }})">Check stock</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    function checkStock(productId) {
+      const formData = new URLSearchParams();
+      formData.append('productId', productId);
+      formData.append('storeId', '1');
+
+      fetch('/check-stock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData.toString()
+      })
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('result').innerText = data;
+      })
+      .catch(error => console.error('Error:', error));
+    }
+  </script>
+
+</body>
+</html>
