@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test Shop</title>
+  </head>
+  <body>
+    <h2>Danh sách sản phẩm (Dữ liệu Live)</h2>
+    <hr />
+
+    <!-- Lặp qua danh sách sản phẩm lấy từ DB -->
+    {% for p in products %}
+    <div
+      style="
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+        width: 300px;
+      "
+    >
+      <h3>{{ p[1] }}</h3>
+      <!-- Tên -->
+      <p><i>{{ p[2] }}</i></p>
+      <!-- Mô tả -->
+
+      <form action="/check" method="POST">
+        <!-- URL API nội bộ. Dùng 127.1 để tính năng stock của khách hàng ko bị filter chặn -->
+        <input
+          type="hidden"
+          name="url"
+          value="http://127.1:5000/api/stock?productId={{ p[0] }}"
+        />
+        <button type="submit">Check Stock</button>
+      </form>
+    </div>
+    {% endfor %}
+  </body>
+</html>
