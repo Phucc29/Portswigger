@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm mx-auto" style="max-width: 500px;">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">My Account</h4>
+    </div>
+    <div class="card-body">
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Current Email:</strong> {{ user.email }}</p>
+        <hr>
+        <h5>Change Email</h5>
+        <form method="POST" action="/my-account/change-email">
+            <!-- Token này sẽ bị XSS đánh cắp bằng Regex -->
+            <input type="hidden" name="csrf" value="{{ csrf_token }}">
+            
+            <div class="mb-3">
+                <label>New Email</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-warning">Update Email</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
